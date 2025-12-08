@@ -1,0 +1,52 @@
+import React from 'react';
+
+const MahasiswaKHS = () => {
+  return (
+    <section className="section">
+      <div className="section-header">
+        <h1>Kartu Hasil Studi</h1>
+      </div>
+
+      <div className="section-body">
+        <div className="row">
+          <div className="col-12">
+            <div className="card">
+              <div className="card-body">
+                <div className="table-responsive">
+                  <table className="table table-striped" id="table-1">
+                    <thead>
+                      <tr>
+                        <th>#</th>
+                        <th>Tahun Ajaran</th>
+                        <th>Semester</th>
+                        <th>GPA</th>
+                        <th>Dibuat pada</th>
+                        <th>Aksi</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td>1</td>
+                        <td>2025/2026</td>
+                        <td>1</td>
+                        <td>3.40</td>
+                        <td>2024-08-01</td>
+                        <td>
+                          <a href="#" className="btn btn-icon btn-primary" id="modal-2">
+                            <i className="fa fa-eye"></i>
+                          </a>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+};
+
+export default MahasiswaKHS;
