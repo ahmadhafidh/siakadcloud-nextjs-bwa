@@ -2,6 +2,7 @@
 
 import React, {useState} from 'react'
 import {useRouter} from "next/navigation"
+import api from "@/app/lib/axiosInstance"
 
 export default function LoginPage() {
     const router = useRouter();
@@ -12,7 +13,7 @@ export default function LoginPage() {
     const [password, setPassword] = useState("")
     const [role, setRole] = useState("")
 
-    const handleSubmit = (e:React.FormEvent) => {
+    const handleRegister = async (e:React.FormEvent) => {
         e.preventDefault();
 
         if (!name || !email || !password){
@@ -20,11 +21,19 @@ export default function LoginPage() {
             return
         }
 
-        //simulasi kirim data ke backend
-        console.log({name, email, password, role})
-
-        //redirect ke login
-        router.push("/auth/login")
+        try {
+            const res = await api.post("authsiakad/register", {
+                name, 
+                email,
+                password,
+                role: "admin"
+            })
+            alert("Register Berhasil");
+            router.push("/pages/auth/admin/login");
+        } catch (error) {
+            console.log(error)
+            alert("Register gagal. Periksa email atau password!");
+        }
     }
     return (
         <section className="section">
@@ -39,7 +48,7 @@ export default function LoginPage() {
                     <div className="card-header"><h4>Register</h4></div>
 
                     <div className="card-body">
-                        <form onSubmit={handleSubmit}>
+                        <form onSubmit={handleRegister}>
                         <div className="row">
                             <div className="form-group col-6">
                                 <label htmlFor="name">Name</label>

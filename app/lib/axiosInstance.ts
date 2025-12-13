@@ -8,7 +8,6 @@ function getTokenFromCookies(): string | null {
 // Buat instance axios
 const api = axios.create({
     baseURL: process.env.NEXT_PUBLIC_API_BASE_URL, //ganti variabel sesuai yg didefinisikan di .env
-    withCredentials: true, //biar cookies bisa ikut (kalau backend support CORS credentials)
 })
 
 // Interceptor untuk setiap request

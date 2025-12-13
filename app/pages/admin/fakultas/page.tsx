@@ -1,39 +1,155 @@
 'use client';
-import React, { useState } from 'react';
+import api from "@/app/lib/axiosInstance"
+import React, { useEffect, useState } from 'react';
+
+interface Fakultas {
+  id: number, 
+  name: string,
+  code:string,
+  createdAt: string
+}
+
+// API Services
+const getFakultas = async () => {
+  const res = await api.get("/faculties")
+  console.log(res.data.data)
+  return res.data.data;
+}
+
+const addFakultas = async (data: {name:string; code:string}) => {
+  const res = await api.post("/faculties", data)
+  return res.data
+}
+
+const updateFakultas = async (
+  id: number,
+  data: {name?: string; code?: string}
+) => {
+  const res = await api.put (`/faculties/${id}`, data)
+  return res.data
+}
+
+const deleteFakultas = async (id:number) => {
+  const res = await api.delete(`/faculties/${id}`)
+  return res.data
+}
 
 const FakultasPage = () => {
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [selectedFakultas, setSelectedFakultas] = useState({
-    nama: '',
-    kode: '',
-  });
+  const [fakultasList, setFakultasList] = useState<Fakultas[]>([])
+  const [loading, setLoading] = useState(true)
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false)
+  const [selectedFakultas, setSelectedFakultas] = useState<Fakultas | null>(
+    null
+  );
+  
+  // State input tambah/edit
+  const [nama, setNama] = useState("")
+  const [kode, setKode] = useState("")
 
-  const fakultasList = [
-    { id: 1, nama: 'Fakultas Teknik', kode: 'FT001',  dibuat: '10 Januari 2025' },
-    { id: 2, nama: 'Fakultas Kedokteran', kode: 'FK002', dibuat: '11 Januari 2025' },
-    { id: 3, nama: 'Fakultas Hukum', kode: 'FH003', dibuat: '12 Januari 2025' },
-  ];
+  // State untuk search, sorting, pagination
+  // const[globalFilter, setGlobalFilter] = useState("")
+  // const [sorting, setSorting] = useState<SortingState>([
+  //   { id: "name", desc: false },
+  // ]);
+  // const [pagination, setPagination] = useState({
+  //   pageIndex: 0,
+  //   pageSize: 10,
+  // });
 
-  const openEditModal = (fakultas: typeof selectedFakultas) => {
-    setSelectedFakultas(fakultas);
-    setIsEditModalOpen(true);
+  // Generate kode otomatis dari nama
+  const generateKode = (namaFakultas: string) => {
+    if (!namaFakultas) return "";
+    return namaFakultas
+      .split(" ") // pisah per kata
+      .map((kata) => kata[0]?.toUpperCase()) // ambil huruf pertama
+      .join(""); // misal "FT" dari "Fakultas Teknik"
   };
 
+  const handleNamaChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setNama(value);
+    setKode(generateKode(value)) // otomatis update kode saat nama diubah
+  }
+
+  //ambil data awal
+  useEffect(() => {
+    fetchFakultas();
+  }, [])
+
+  const fetchFakultas = async () => {
+    setLoading(true);
+    const data = await getFakultas()
+    setFakultasList(data)
+    setLoading(false)
+  }
+
+  //tambah
+  const handleSubmit = async (e:React.FormEvent) => {
+    e.preventDefault()
+    await addFakultas({name: nama, code: kode})
+
+    setNama("");
+    setKode("");
+    fetchFakultas();
+  }
+
+  // Edit
+  const openEditModal = (fakultas:Fakultas) => {
+    setSelectedFakultas(fakultas)
+    setIsEditModalOpen(true);
+  }
+  
   const closeEditModal = () => {
     setIsEditModalOpen(false);
-    setSelectedFakultas({ nama: '', kode: ''});
-  };
+    setSelectedFakultas(null);
+  }
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setSelectedFakultas((prev) => ({ ...prev, [name]: value }));
-  };
+  // const handleInputChange = async (e:React.FormEvent) => {
+  //   e.preventDefault()
+  //   if (selectedFakultas) {
+  //     await updateFakultas(selectedFakultas.id, {
+  //       name: selectedFakultas.name,
+  //       code: selectedFakultas.code,
+  //     });
+  //     fetchFakultas();
+  //     closeEditModal();
+  //   }
+  // }
 
-  const handleSave = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleEditSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Saved fakultas:', selectedFakultas);
-    closeEditModal();
+    if (selectedFakultas) {
+      await updateFakultas(selectedFakultas.id, {
+        name: selectedFakultas.name,
+        code: selectedFakultas.code,
+      });
+      fetchFakultas();
+      closeEditModal();
+    }
   };
+
+
+  // Hapus
+  const handleDelete = async (id: number) => {
+    if (confirm("Yakin mau hapus?")) {
+      await deleteFakultas(id);
+      fetchFakultas();
+    }
+  };
+
+  // wrapper agar cocok dengan tipe onChange di FieldConfig
+  // const handleNamaChangeWrapper = (
+  //   e:
+  //     | React.ChangeEvent<
+  //       HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+  //     >
+  //     | SelectOption
+  //     | null
+  // ) => {
+  //   if (e && "target" in e) {
+  //     handleNamaChange(e as React.ChangeEvent<HTMLInputElement>);
+  //   }
+  // }
 
   return (
     <section className="section">
@@ -62,10 +178,19 @@ const FakultasPage = () => {
                 </button>
                 <div className="collapse" id="collapseTambahFakultas">
                   <div className="card card-body">
-                    <form>
+                    <form onSubmit={handleSubmit}>
                       <div className="form-group">
                         <label>Nama Fakultas</label>
-                        <input type="text" className="form-control" placeholder="Nama Fakultas" />
+                        <input type="text" className="form-control" placeholder="Nama Fakultas" value={nama} onChange={handleNamaChange} />
+                      </div>
+                      <div className="form-group">
+                        <label>Kode</label>
+                        <input
+                          type="text"
+                          className="form-control"
+                          value={kode}
+                          readOnly
+                        />
                       </div>
                       <button type="submit" className="btn btn-primary">Simpan</button>
                     </form>
@@ -87,9 +212,18 @@ const FakultasPage = () => {
                       {fakultasList.map((fakultas, index) => (
                         <tr key={fakultas.id}>
                           <td>{index + 1}</td>
-                          <td>{fakultas.nama}</td>
-                          <td>{fakultas.kode}</td>
-                          <td>{fakultas.dibuat}</td>
+                          <td>{fakultas.name}</td>
+                          <td>{fakultas.code}</td>
+                          <td>
+                            {new Date(fakultas.createdAt).toLocaleDateString(
+                              "id-ID",
+                              {
+                                day: "2-digit",
+                                month: "long",
+                                year: "numeric",
+                              }
+                            )}
+                          </td>
                           <td>
                             <a
                               href="#"
@@ -101,7 +235,14 @@ const FakultasPage = () => {
                             >
                               <i className="far fa-edit"></i>
                             </a>
-                            <a href="#" className="btn btn-icon btn-danger">
+                            <a
+                              href="#"
+                              className="btn btn-icon btn-danger"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                handleDelete(fakultas.id);
+                              }}
+                            >
                               <i className="fa fa-trash"></i>
                             </a>
                           </td>
@@ -111,7 +252,7 @@ const FakultasPage = () => {
                   </table>
                 </div>
 
-                {/* Modal */}
+                 {/* Modal Edit */}
                 {isEditModalOpen && (
                   <div className="modal fade show" style={{
                     display: 'block',
@@ -124,7 +265,7 @@ const FakultasPage = () => {
                   }}>
                     <div className="modal-dialog modal-dialog-centered">
                       <div className="modal-content">
-                        <form onSubmit={handleSave}>
+                        <form onSubmit={handleEditSave}>
                           <div className="modal-header">
                             <h5 className="modal-title">Edit Fakultas</h5>
                             <button type="button" className="close" onClick={closeEditModal}>
@@ -137,9 +278,28 @@ const FakultasPage = () => {
                               <input
                                 type="text"
                                 className="form-control"
-                                name="nama"
-                                value={selectedFakultas.nama}
-                                onChange={handleInputChange}
+                                value={selectedFakultas.name}
+                                onChange={(e) =>
+                                  setSelectedFakultas({
+                                    ...selectedFakultas,
+                                    name: e.target.value,
+                                  })
+                                }
+                                required
+                              />
+                            </div>
+                            <div className="form-group">
+                              <label>Kode</label>
+                              <input
+                                type="text"
+                                className="form-control"
+                                value={selectedFakultas.code}
+                                onChange={(e) =>
+                                  setSelectedFakultas({
+                                    ...selectedFakultas,
+                                    code: e.target.value,
+                                  })
+                                }
                                 required
                               />
                             </div>

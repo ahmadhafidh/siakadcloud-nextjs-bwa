@@ -2,6 +2,8 @@
 
 import React, {useState} from 'react'
 import {useRouter} from "next/navigation"
+import api from "@/app/lib/axiosInstance"
+import Cookies from "js-cookie"
 
 export default function LoginPage() {
     const router = useRouter();
@@ -9,14 +11,21 @@ export default function LoginPage() {
     const [password, setPassword] = useState("")
     const [remember, setRemember] = useState("")
 
-    const handleSubmit = (e:React.FormEvent) => {
+    const handleLogin = async (e:React.FormEvent) => {
         e.preventDefault();
 
-        // contoh simulasi login
-        if(email === "admin@example.com" && password === "123456"){
-            router.push("/dashboard"); //redirect to dashboard
-        } else {
-            alert("Email atau password salah")
+        try {
+            const res = await api.post("authsiakad/login", {
+                email,
+                password
+            });
+            Cookies.set("token", res.data.data.token, {expires: 1})
+            Cookies.set("email", res.data.data.email, {expires: 1})
+            alert("Login berhasil")
+            router.push("/pages/admin/dashboard")
+        } catch (err) {
+            console.error(err);
+            alert("Login gagal. Periksa email atau password!");
         }
     }
     return (
@@ -33,7 +42,7 @@ export default function LoginPage() {
 
                             <div className="card-body">
                                 <form 
-                                    onSubmit={handleSubmit}
+                                    onSubmit={handleLogin}
                                     className="needs-validation" 
                                     noValidate
                                 >
