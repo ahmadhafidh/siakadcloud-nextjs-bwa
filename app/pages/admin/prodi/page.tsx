@@ -1,26 +1,99 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import api from "@/app/lib/axiosInstance";
+
+interface Fakultas {
+  id: string;
+  name: string;
+  code: string;
+  createdAt: string;
+  updatedAt: string;
+}
+interface Prodi {
+  id: number;
+  name: string;
+  code: string;
+  facultyId: string;
+  faculty?: Fakultas;
+  createdAt: string;
+}
+
+// API Services
+const getProdi = async () => {
+  const res = await api.get("/majors")
+  return res.data.data;
+}
+
+const getFakultas = async () => {
+  const res = await api.get("/faculties")
+  return res.data.data;
+}
+
+const addProdi = async (data: {
+  name:string;
+  code:string
+  facultyId:string
+}) => {
+  const res = await api.post("/majors", data)
+  return res.data
+}
+
+const updateProdi = async (
+  id: number,
+  data: {name?: string; code?: string; facultyId?: string}
+) => {
+  const res = await api.put(`/majors/${id}`, data)
+  return res.data
+}
+
+const deleteProdi = async (id:number) => {
+  const res = await api.delete(`/majors/${id}`)
+  return res.data
+}
 
 const ProdiPage = () => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [selectedProdi, setSelectedProdi] = useState({ fakultas: '', nama: '', kode: '' });
-  const [newProdi, setNewProdi] = useState({ fakultas: '', nama: '', kode: '' });
-  const [prodiList, setProdiList] = useState([
-    { id: 1, fakultas: 'Fakultas Teknik', nama: 'Teknik Informatika', kode: '2018178', dibuat: 'Rabu, 12 Januari 2025' },
-    { id: 2, fakultas: 'Fakultas Kedokteran', nama: 'Kedokteran', kode: '2018172', dibuat: 'Selasa, 21 Januari 2025' },
-    { id: 3, fakultas: 'Fakultas Sains dan Teknologi', nama: 'Matematika', kode: '2018170', dibuat: 'Senin, 03 Januari 2025' },
-    { id: 4, fakultas: 'Fakultas Ekonomi dan Bisnis', nama: 'Manajemen', kode: '2018165', dibuat: 'Kamis, 09 Januari 2025' },
-    { id: 5, fakultas: 'Fakultas Ilmu Sosial dan Ilmu Politik', nama: 'Hubungan Internasional', kode: '2018159', dibuat: 'Jumat, 10 Januari 2025' },
-  ]);
+  const [selectedProdi, setSelectedProdi] = useState<Partial<Prodi>>({});
+  const [newProdi, setNewProdi] = useState({
+    name: "",
+    code: "",
+    facultyId: "",
+  });
+  const [prodiList, setProdiList] = useState<Prodi[]>([]);
+  const [fakultasList, setFakultasList] = useState<Fakultas[]>([]);
 
-  const openEditModal = (prodi: any) => {
+  //ambil data awal
+  useEffect(() => {
+    fetchProdi()
+    fetchFakultas()
+  }, [])
+
+  const fetchFakultas = async () => {
+    try {
+      const data = await getFakultas()
+      setFakultasList(data)
+    } catch (err) {
+      console.log("Gagal fetch fakultas", err)
+    }
+  }
+
+  const fetchProdi = async () => {
+    try {
+      const data = await getProdi();
+      setProdiList(data);
+    } catch (err) {
+       console.log("Gagal fetch prodi", err)
+    }
+  }
+  
+  const openEditModal = (prodi: Prodi) => {
     setSelectedProdi(prodi);
     setIsEditModalOpen(true);
   };
 
   const closeEditModal = () => {
     setIsEditModalOpen(false);
-    setSelectedProdi({ fakultas: '', nama: '', kode: '' });
+    setSelectedProdi({});
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -33,22 +106,54 @@ const ProdiPage = () => {
     setNewProdi((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleAddNewProdi = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleAddNewProdi = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const newId = prodiList.length + 1;
-    const newCreatedDate = new Date().toLocaleDateString('id-ID', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' });
-    setProdiList([...prodiList, { ...newProdi, id: newId, dibuat: newCreatedDate }]);
-    setNewProdi({ fakultas: '', nama: '', kode: '' });
+    try {
+      const saved = await addProdi(newProdi);
+      setProdiList((prev) => [...prev, saved]);
+      setNewProdi({ name: "", code: "", facultyId: "" });
+      fetchProdi();
+    } catch (err) {
+      console.error("Gagal tambah prodi:", err);
+    }
   };
 
-  const handleSave = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSave = async(e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const updatedList = prodiList.map((p) =>
-      p.kode === selectedProdi.kode ? { ...p, ...selectedProdi } : p
-    );
-    setProdiList(updatedList);
-    closeEditModal();
+    if(!selectedProdi.id) return
+    try {
+      const updated = await updateProdi(selectedProdi.id, {
+        name: selectedProdi.name,
+        code: selectedProdi.code,
+        facultyId: selectedProdi.facultyId,
+      })
+      setProdiList((prev)=>
+        prev.map((p) => (p.id === updated.id ? updated : p))
+      );
+      fetchProdi();
+      closeEditModal();
+    } catch (err) {
+      console.error("Gagal update prodi:", err);
+    }
   };
+
+  const handleDelete = async (id:number) => {
+    try {
+      await deleteProdi(id)
+      fetchProdi();
+      alert("Prodi berhasil dihapus!");
+    } catch (err:any) {
+      // Cek apakah error karena foreign key constraint
+      if (err.response?.data?.data?.error?.includes("Foreign key constraint")) {
+        alert(
+          "Prodi tidak bisa dihapus karena masih memiliki data terkait (misal mahasiswa, jadwal, dll)."
+        );
+      } else {
+        alert("Gagal hapus prodi: " + err.message);
+      }
+      console.error("Gagal hapus prodi:", err);
+    }
+  }
 
   return (
     <section className="section">
@@ -80,27 +185,28 @@ const ProdiPage = () => {
                         <select
                           className="form-control"
                           id="fakultas"
-                          name="fakultas"
-                          value={newProdi.fakultas}
-                          onChange={handleNewProdiChange}
+                          name="facultyId"
+                          value={newProdi.facultyId} // pakai newProdi
+                          onChange={handleNewProdiChange} // pakai handler newProdi
                           required
                         >
-                          <option value="">-- Pilih Fakultas --</option>
-                          <option value="Fakultas Keguruan dan Ilmu Pendidikan">Fakultas Keguruan dan Ilmu Pendidikan</option>
-                          <option value="Fakultas Ekonomi dan Bisnis">Fakultas Ekonomi dan Bisnis</option>
-                          <option value="Fakultas Hukum">Fakultas Hukum</option>
-                          <option value="Fakultas Ilmu Komputer">Fakultas Ilmu Komputer</option>
-                          <option value="Fakultas Kedokteran">Fakultas Kedokteran</option>
+                            <option value="">-- Pilih Fakultas --</option>
+                            {fakultasList.map((f)=> (
+                              <option key={f.id} value={f.id}>
+                                {f.name}
+                              </option>
+                            ))}
+                          
                         </select>
                       </div>
                       <div className="form-group">
                         <label>Nama Prodi</label>
                         <input
                           type="text"
-                          name="nama"
+                          name="name"
                           className="form-control"
                           placeholder="Nama Prodi"
-                          value={newProdi.nama}
+                          value={newProdi.name}
                           onChange={handleNewProdiChange}
                           required
                         />
@@ -109,10 +215,10 @@ const ProdiPage = () => {
                         <label>Kode</label>
                         <input
                           type="text"
-                          name="kode"
+                          name="code"
                           className="form-control"
                           placeholder="Kode"
-                          value={newProdi.kode}
+                          value={newProdi.code}
                           onChange={handleNewProdiChange}
                           required
                         />
@@ -136,17 +242,33 @@ const ProdiPage = () => {
                     </thead>
                     <tbody>
                       {prodiList.map((prodi, index) => (
-                        <tr key={prodi.id}>
+                        <tr key={prodi.id ?? `new-${index}`}>
                           <td>{index + 1}</td>
-                          <td>{prodi.fakultas}</td>
-                          <td>{prodi.nama}</td>
-                          <td>{prodi.kode}</td>
-                          <td>{prodi.dibuat}</td>
+                          <td>{prodi.faculty?.name}</td>
+                          <td>{prodi.name}</td>
+                          <td>{prodi.code}</td>
+                          <td>
+                            {new Date(prodi.createdAt).toLocaleDateString(
+                              "id-ID",
+                              {
+                                day: "2-digit",
+                                month: "long",
+                                year: "numeric",
+                              }
+                            )}
+                          </td>
                           <td>
                             <a href="#" className="btn btn-icon btn-primary" onClick={(e) => { e.preventDefault(); openEditModal(prodi); }}>
                               <i className="far fa-edit"></i>
                             </a>
-                            <a href="#" className="btn btn-icon btn-danger">
+                            <a
+                              href="#"
+                              className="btn btn-icon btn-danger"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                handleDelete(prodi.id!);
+                              }}
+                            >
                               <i className="fa fa-trash"></i>
                             </a>
                           </td>
@@ -176,27 +298,27 @@ const ProdiPage = () => {
                   <div className="form-group">
                     <label>Nama Fakultas</label>
                     <select
-                      name="fakultas"
+                      name="facultyId"
                       className="form-control"
-                      value={selectedProdi.fakultas}
+                      value={selectedProdi.facultyId}
                       onChange={handleInputChange}
                       required
                     >
                       <option value="">-- Pilih Fakultas --</option>
-                      <option value="Fakultas Keguruan dan Ilmu Pendidikan">Fakultas Keguruan dan Ilmu Pendidikan</option>
-                      <option value="Fakultas Ekonomi dan Bisnis">Fakultas Ekonomi dan Bisnis</option>
-                      <option value="Fakultas Hukum">Fakultas Hukum</option>
-                      <option value="Fakultas Ilmu Komputer">Fakultas Ilmu Komputer</option>
-                      <option value="Fakultas Kedokteran">Fakultas Kedokteran</option>
+                      {fakultasList.map((f)=> (
+                        <option key={f.id} value={f.id}>
+                          {f.name}
+                        </option>
+                      ))}
                     </select>
                   </div>
                   <div className="form-group">
                     <label>Nama Prodi</label>
                     <input
                       type="text"
-                      name="nama"
+                      name="name"
                       className="form-control"
-                      value={selectedProdi.nama}
+                      value={selectedProdi.name}
                       onChange={handleInputChange}
                       required
                     />
@@ -205,9 +327,9 @@ const ProdiPage = () => {
                     <label>Kode</label>
                     <input
                       type="text"
-                      name="kode"
+                      name="code"
                       className="form-control"
-                      value={selectedProdi.kode}
+                      value={selectedProdi.code}
                       onChange={handleInputChange}
                       required
                     />

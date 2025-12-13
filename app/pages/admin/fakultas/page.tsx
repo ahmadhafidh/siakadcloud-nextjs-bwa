@@ -131,10 +131,24 @@ const FakultasPage = () => {
 
   // Hapus
   const handleDelete = async (id: number) => {
-    if (confirm("Yakin mau hapus?")) {
-      await deleteFakultas(id);
-      fetchFakultas();
+    if (!confirm("Yakin hapus fakultas ini")) return
+
+    try {
+      await deleteFakultas(id)
+      setFakultasList((prev) => prev.filter((p) => p.id !== id));
+      alert("Fakultas berhasil dihapus")
+    } catch (err:any) {
+      // Cek apakah error karena foreign key constraint
+      if (err.response?.data?.data?.error?.includes("Foreign key constraint")) {
+        alert(
+          "Fakultas tidak bisa dihapus karena masih memiliki data terkait prodi."
+        );
+      } else {
+        alert("Gagal hapus prodi: " + err.message);
+      }
+      console.error("Gagal hapus prodi:", err);
     }
+    fetchFakultas();
   };
 
   // wrapper agar cocok dengan tipe onChange di FieldConfig
