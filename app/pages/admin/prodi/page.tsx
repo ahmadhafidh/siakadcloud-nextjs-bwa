@@ -251,6 +251,7 @@ const ProdiPage = () => {
                             {new Date(prodi.createdAt).toLocaleDateString(
                               "id-ID",
                               {
+                                weekday: "long",
                                 day: "2-digit",
                                 month: "long",
                                 year: "numeric",

@@ -227,6 +227,7 @@ const TahunAjaranPage = () => {
                             {new Date(item.dateStart).toLocaleDateString(
                               "id-ID",
                               {
+                                weekday: "long",
                                 day: "2-digit",
                                 month: "long",
                                 year: "numeric",
@@ -238,6 +239,7 @@ const TahunAjaranPage = () => {
                             {new Date(item.dateEnd).toLocaleDateString(
                               "id-ID",
                               {
+                                weekday: "long",
                                 day: "2-digit",
                                 month: "long",
                                 year: "numeric",
@@ -254,6 +256,7 @@ const TahunAjaranPage = () => {
                               ? new Date(item.createdAt).toLocaleDateString(
                                   "id-ID",
                                   {
+                                    weekday: "long",
                                     day: "2-digit",
                                     month: "long",
                                     year: "numeric",

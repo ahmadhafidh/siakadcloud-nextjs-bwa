@@ -232,6 +232,7 @@ const FakultasPage = () => {
                             {new Date(fakultas.createdAt).toLocaleDateString(
                               "id-ID",
                               {
+                                weekday: "long",
                                 day: "2-digit",
                                 month: "long",
                                 year: "numeric",
