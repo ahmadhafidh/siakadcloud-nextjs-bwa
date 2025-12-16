@@ -1,138 +1,128 @@
-
 "use client";
-// import MyBarChart from '../../../components/myBarChart';
-
-import api from "@/app/lib/axiosInstance"
-import React, { useEffect, useState } from 'react';
+import React from "react";
+import MyBarChart from "../../../components/myBarChart";
+import api from "@/app/lib/axiosInstance";
+import { useState, useEffect } from "react";
 
 interface Ukt {
-  id: string,
-  group: string,
-  amount: number,
-  createdAt: string,
+  id: string;
+  group: string;
+  amount: number;
+  createdAt: string;
 }
 
-//api get all data
 const getGolUkt = async () => {
-  const res = await api.get("/tf-groups")
-  return res.data.data
-}
-
-const addGolUkt = async(data: {group:string; amount: number}) => {
-  const res = await api.post("/tf-groups", data)
-  return res.data
-}
-
-//api update data
-const updateGolUkt = async(
-   id:string,
-   data: {group?:string; amount?:number }
+  const res = await api.get("/tf-groups");
+  return res.data.data;
+};
+const addGolUkt = async (data: { group: string; amount: number }) => {
+  const res = await api.post("/tf-groups", data);
+  return res.data;
+};
+const updateGolUkt = async (
+  id: string,
+  data: { group?: string; amount?: number }
 ) => {
-  const res = await api.put(`/tf-groups/${id}`, data)
-  return res.data
-}
-
-//api delete data
-const deleteGolUkt = async(id:string) => {
-  const res = await api.delete(`/tf-groups/${id}`)
-  return res.data
-}
-
+  const res = await api.put(`/tf-groups/${id}`, data);
+  return res.data;
+};
+const deleteGolUkt = async (id: string) => {
+  const res = await api.delete(`/tf-groups/${id}`);
+  return res.data;
+};
 
 const GolUKTPage = () => {
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false)
-  const [selectedGolUkt, setSelectedGolUkt] = useState<Partial<Ukt>>({})
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [selectedGolUkt, setSelectedGolUkt] = useState<Partial<Ukt>>({});
   const [newGolUkt, setNewGolUkt] = useState({
     group: "",
     amount: null,
-  })
-  const [golUktList, setGolUktList] = useState<Ukt[]>([])
+  });
+  const [goUktList, setGolUktList] = useState<Ukt[]>([]);
 
-  //ambil data awal
+  // ambil data awal
   useEffect(() => {
-    fetchGolUkt()
-  }, [])
-  
-  //get all data
+    fetchGolUkt();
+  }, []);
+
   const fetchGolUkt = async () => {
     try {
-      const data = await getGolUkt()
-      setGolUktList(data)
+      const data = await getGolUkt();
+      setGolUktList(data);
     } catch (err) {
-      console.error("Gagal fetch golongan ukt:", err)
+      console.error("Gagal fetch golongan ukt:", err);
     }
-  }
+  };
 
-  //start of popup keperluan edit
-  const openEditModal = (ukt:Ukt) =>{
-    setSelectedGolUkt(ukt)
-    setIsEditModalOpen(true)
-  }
-  const closeEditModal = () =>{
-    setIsEditModalOpen(false)
-    setSelectedGolUkt({})
-  }
-  //end of popup keperluan edit
-  
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const openEditModal = (ukt: Ukt) => {
+    setSelectedGolUkt(ukt);
+    setIsEditModalOpen(true);
+  };
+
+  const closeEditModal = () => {
+    setIsEditModalOpen(false);
+    setSelectedGolUkt({});
+  };
+
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
     const { name, value } = e.target;
     setSelectedGolUkt((prev) => ({
       ...prev,
       [name]: name === "amount" ? Number(value) : value,
     }));
-  }
+  };
 
-  const handleNewGolUktChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleNewGolUktChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
     const { name, value } = e.target;
     setNewGolUkt((prev) => ({
       ...prev,
       [name]: name === "amount" ? Number(value) : value,
     }));
-  }
+  };
 
   const handleAddNewGolUkt = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
-
+    e.preventDefault();
     try {
       const payload = {
         group: newGolUkt.group,
-        amount: Number(newGolUkt.amount) //pastikan number
-      }
-      const saved = await addGolUkt(payload)
-      
+        amount: Number(newGolUkt.amount), // pastikan number
+      };
+
+      const saved = await addGolUkt(payload);
       setGolUktList((prev) => [...prev, saved]);
       setNewGolUkt({ group: "", amount: null });
       fetchGolUkt();
     } catch (err) {
       console.error("Gagal tambah golongan UKT:", err);
     }
-  }
+  };
 
-  //ketika button submit di klik
-  const handleSave = async(e:React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
-    if(!selectedGolUkt.id) return
+  const handleSave = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!selectedGolUkt.id) return;
 
     try {
       const updated = await updateGolUkt(selectedGolUkt.id, {
-        group:selectedGolUkt.group,
-        amount:selectedGolUkt.amount,
-      })
+        group: selectedGolUkt.group,
+        amount: selectedGolUkt.amount,
+      });
 
       setGolUktList((prev) =>
         prev.map((p) => (p.id === updated.id ? updated : p))
-    );
-
+      );
       closeEditModal();
       fetchGolUkt();
     } catch (err) {
       console.error("Gagal update gol ukt:", err);
     }
-  }
+  };
 
-  //ketika button delete di klik
   const handleDelete = async (id: string) => {
-    if(!confirm("Yakin hapus golongan ukt ini?")) return
+    if (!confirm("Yakin hapus golongan ukt ini?")) return;
 
     try {
       await deleteGolUkt(id);
@@ -149,7 +139,8 @@ const GolUKTPage = () => {
       }
       console.error("Gagal hapus golongan ukt:", err);
     }
-  }
+  };
+
   return (
     <section className="section">
       <div className="section-header">
@@ -157,7 +148,9 @@ const GolUKTPage = () => {
         <div className="section-header-breadcrumb">
           <div className="breadcrumb-item">Pembayaran</div>
           <div className="breadcrumb-item">
-            <a href="../pembayaran/golongan-ukt.html">Golongan Kuliah Tunggal</a>
+            <a href="../pembayaran/golongan-ukt.html">
+              Golongan Kuliah Tunggal
+            </a>
           </div>
         </div>
       </div>
@@ -188,6 +181,7 @@ const GolUKTPage = () => {
                           type="text"
                           className="form-control"
                           placeholder="Nama Golongan"
+                          name="group"
                           value={newGolUkt.group}
                           onChange={handleNewGolUktChange}
                           required
@@ -199,6 +193,7 @@ const GolUKTPage = () => {
                           type="number"
                           className="form-control"
                           placeholder="Jumlah"
+                          name="amount"
                           value={newGolUkt.amount ?? ""}
                           onChange={handleNewGolUktChange}
                           required
@@ -222,7 +217,7 @@ const GolUKTPage = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      {golUktList.map((ukt,index) => (
+                      {goUktList.map((ukt, index) => (
                         <tr key={ukt.id}>
                           <td>{index + 1}</td>
                           <td>{ukt.group}</td>
@@ -244,9 +239,9 @@ const GolUKTPage = () => {
                             )}
                           </td>
                           <td>
-                            <button 
-                              className="btn btn-icon btn-primary" 
-                              onClick={()=> openEditModal(ukt)}
+                            <button
+                              onClick={() => openEditModal(ukt)}
+                              className="btn btn-icon btn-primary"
                             >
                               <i className="far fa-edit"></i>
                             </button>
