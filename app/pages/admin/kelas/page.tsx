@@ -1,68 +1,219 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import api from "@/app/lib/axiosInstance";
 
-type Kelas = {
-  id: number;
-  fakultas: string;
-  prodi: string;
-  tahunAjaran: string;
-  namaKelas: string;
-  dibuat: string;
-};
+interface Kelas {
+  id: string;
+  name: string;
+  majorId: string;
+  major?: Prodi;
+  yearId: string;
+  year?: TahunAjaran;
+  createdAt: string;
+}
 
-const initialData: Kelas[] = [
-  {
-    id: 1,
-    fakultas: 'Fakultas Teknik',
-    prodi: 'Teknik Komputer',
-    tahunAjaran: '2025/2026',
-    namaKelas: 'IF-1A',
-    dibuat: 'Rabu, 12 Januari 2025',
-  },
-  {
-    id: 2,
-    fakultas: 'Fakultas Ekonomi',
-    prodi: 'Ekonomi',
-    tahunAjaran: '2025/2026',
-    namaKelas: 'IF-2A',
-    dibuat: 'Rabu, 18 Januari 2025',
-  },
-  {
-    id: 3,
-    fakultas: 'Fakultas Kedokteran',
-    prodi: 'Kedokteran',
-    tahunAjaran: '2025/2026',
-    namaKelas: 'IF-3A',
-    dibuat: 'Senin, 10 Maret 2025',
-  },
-];
+interface Fakultas {}
+interface Prodi {
+  id: string;
+  name: string;
+  code: string;
+  facultyId: string;
+}
+
+interface TahunAjaran {
+  id: string;
+  name: string;
+  dateStart: string;
+  dateEnd: string;
+  status: boolean;
+  createdAt: string;
+}
+
+//API Services
+const getProdi = async() => {
+  const res = await api.get("/majors") //bukan http://localhost:5025/api/ -> tapi langsung /lectures
+  return res.data.data
+}
+
+const getTahunAjaran = async() => {
+  const res = await api.get("/years") //bukan http://localhost:5025/api/ -> tapi langsung /lectures
+  return res.data.data
+}
+
+const getKelas = async() => {
+  const res = await api.get("/classes") //bukan http://localhost:5025/api/ -> tapi langsung /classes
+  return res.data.data
+}
+
+const addKelas = async (data:{
+  name: string,
+  majorId: string,
+  yearId: string
+}) => {
+  const res = await api.post("/classes", data)
+  return res.data
+}
+
+const updateKelas = async (
+    id: string,
+    data:{
+      name: string,
+      majorId: string,
+      yearId: string
+    }
+) => {
+  const res = await api.put(`/classes/${id}`, data)
+  return res.data
+}
+
+const deleteKelas = async (id: string) => {
+  const res = await api.delete(`/classes/${id}`)
+  return res.data
+}
+
 
 const KelasPage = () => {
-  const [kelasList, setKelasList] = useState<Kelas[]>(initialData);
-  const [selectedKelas, setSelectedKelas] = useState<Kelas | null>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [selectedKelas, setSelectedKelas] = useState<Partial<Kelas>>({});
+  const [newKelas, setNewkelas] = useState({
+    name: "",
+    majorId: "",
+    yearId: "",
+  });
+  const [kelasList, setKelasList] = useState<Kelas[]>([]);
+  const [prodiList, setProdiList] = useState<Prodi[]>([]);
+  const [tahunAjaranList, setTahunAjaranList] = useState<TahunAjaran[]>([]);
+  const [faculties, setFaculties] = useState<{ [key: string]: string }>({});
 
-  const handleEditClick = (kelas: Kelas) => {
+  //ambil data awal
+  useEffect(() => {
+      fetchKelas();
+      fetchProdi();
+      fetchFaculties();
+      fetchTahunAjaran();
+  }, [])
+
+  const fetchKelas = async () => {
+    try {
+      const data = await getKelas()
+      setKelasList(data);
+    } catch (err) {
+      console.error("Gagal fetch kelas:", err)
+    }
+  }
+
+  const fetchProdi = async () => {
+    try {
+      const data = await getProdi()
+      setProdiList(data);
+    } catch (err) {
+      console.error("Gagal fetch prodi:", err)
+    }
+  }
+
+  const fetchFaculties = async () => {
+    try {
+      const res = await api.get("/fakultas")
+      const data = res.data.data
+      // bikin map facultyId -> facultyName
+      const map: { [key: string]: string } = {};
+      data.forEach((f: any) => {
+        map[f.id] = f.name;
+      });
+      setFaculties(map);
+    } catch (err) {
+      console.error("Gagal fetch prodi:", err)
+    }
+  }
+  
+  const fetchTahunAjaran = async () => {
+    try {
+      const data = await getTahunAjaran()
+      setTahunAjaranList(data);
+    } catch (err) {
+      console.error("Gagal fetch prodi:", err)
+    }
+  }
+
+  const openEditModal = (kelas: Kelas) => {
     setSelectedKelas(kelas);
-    const modal = new (window as any).bootstrap.Modal(document.getElementById('editModal'));
-    modal.show();
+    setIsEditModalOpen(true);
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    if (!selectedKelas) return;
-    setSelectedKelas({
-      ...selectedKelas,
-      [e.target.name]: e.target.value,
-    });
+  const closeEditModal = () => {
+    setIsEditModalOpen(false);
+    setSelectedKelas({});
   };
 
-  const handleSave = () => {
-    if (!selectedKelas) return;
-    setKelasList(prev =>
-      prev.map(k => (k.id === selectedKelas.id ? selectedKelas : k))
-    );
-    const modal = (window as any).bootstrap.Modal.getInstance(document.getElementById('editModal'));
-    modal.hide();
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
+    const { name, value } = e.target;
+    setSelectedKelas((prev) => ({ ...prev, [name]: value }));
   };
+
+  const handleNewkelasChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
+    const { name, value } = e.target;
+    setNewkelas((prev) => ({ ...prev, [name]: value }));
+  };
+
+
+  //create data
+  const handleAddNewkelas = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+
+    try {
+      const saved = await addKelas(newKelas)
+      setKelasList((prev) => [...prev, saved])
+      setNewkelas({ name: "", majorId: "", yearId: "" });
+      fetchKelas();
+    } catch (err) {
+      console.error("Gagal create kelas:", err);
+    }
+  };
+
+  //update data
+  const handleSave = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!selectedKelas.id) return;
+
+    try {
+      const updated = await updateKelas(selectedKelas.id, {
+        name: selectedKelas.name ?? "",
+        majorId: selectedKelas?.majorId ?? "",
+        yearId: selectedKelas?.yearId ?? "",
+      });
+
+      setKelasList((prev) =>
+        prev.map((p) => (p.id === updated.id ? updated : p))
+      );
+      closeEditModal();
+      fetchKelas();
+    } catch (err) {
+      console.error("Gagal update kelas:", err);
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm("yakin hapus kelas ini")) return
+
+    try {
+      await deleteKelas(id)
+      setKelasList((prev) => prev.filter((p) => p.id !== id))
+    } catch (err: any) {
+      // Cek apakah error karena foreign key constraint
+      if (err.response?.data?.data?.error?.includes("Foreign key constraint")) {
+        alert(
+          "Kelas tidak bisa dihapus karena masih memiliki data terkait (misal mahasiswa, jadwal, dll)."
+        );
+      } else {
+        alert("Gagal hapus kelas: " + err.message);
+      }
+      console.error("Gagal hapus kelas:", err);
+    }
+  }
 
   return (
     <section className="section">
@@ -94,28 +245,56 @@ const KelasPage = () => {
                 </button>
                 <div className="collapse" id="collapseEditKelas">
                   <div className="card card-body">
-                    <form>
-                      <div className="form-group">
-                        <label>Nama Fakultas</label>
-                        <select className="form-control" required>
-                          <option>-- Pilih Fakultas --</option>
-                        </select>
-                      </div>
+                    <form onSubmit={handleAddNewkelas}>
                       <div className="form-group">
                         <label>Nama Program Studi</label>
-                        <select className="form-control" required>
+                        <select
+                          className="form-control"
+                          name="majorId"
+                          value={newKelas.majorId} // pakai newProdi
+                          onChange={handleNewkelasChange}
+                          required
+                        >
                           <option>-- Pilih Program Studi --</option>
+                          {prodiList.map((f) => (
+                            <option key={f.id} value={f.id}>
+                              {f.name}
+                            </option>
+                          ))}
                         </select>
                       </div>
                       <div className="form-group">
-                        <label>Tahun Ajaran</label>
-                        <input type="text" className="form-control" placeholder="Tahun Ajaran" />
+                        <label>Nama Tahun Ajaran</label>
+                        <select
+                          className="form-control"
+                          name="yearId"
+                          value={newKelas.yearId} // pakai newProdi
+                          onChange={handleNewkelasChange}
+                          required
+                        >
+                          <option>-- Pilih Tahun Ajaran --</option>
+                          {tahunAjaranList.map((f) => (
+                            <option key={f.id} value={f.id}>
+                              {f.name}
+                            </option>
+                          ))}
+                        </select>
                       </div>
                       <div className="form-group">
                         <label>Nama Kelas</label>
-                        <input type="text" className="form-control" placeholder="Nama Kelas" />
+                        <input
+                          type="text"
+                          className="form-control"
+                          placeholder="Nama Kelas"
+                          name="name"
+                          value={newKelas.name}
+                          onChange={handleNewkelasChange}
+                          required
+                        />
                       </div>
-                      <button type="submit" className="btn btn-primary">Simpan</button>
+                      <button type="submit" className="btn btn-primary">
+                        Simpan
+                      </button>
                     </form>
                   </div>
                 </div>
@@ -137,22 +316,39 @@ const KelasPage = () => {
                       {kelasList.map((kelas, index) => (
                         <tr key={kelas.id}>
                           <td>{index + 1}</td>
-                          <td>{kelas.fakultas}</td>
-                          <td>{kelas.prodi}</td>
-                          <td>{kelas.tahunAjaran}</td>
-                          <td>{kelas.namaKelas}</td>
-                          <td>{kelas.dibuat}</td>
+                          <td>{faculties[kelas.major?.facultyId ?? ""]}</td>
+                          <td>{kelas.major?.name}</td>
+                          <td>{kelas.year?.name}</td>
+                          <td>{kelas.name}</td>
                           <td>
-                            <a href="/admin/pilihkelas" className="btn btn-icon btn-warning">
-                              <i className="fa fa-users"></i>
-                            </a>
+                            {new Date(kelas.createdAt).toLocaleDateString(
+                              "id-ID",
+                              {
+                                weekday: "long",
+                                day: "2-digit",
+                                month: "long",
+                                year: "numeric",
+                              }
+                            )}
+                          </td>
+                          <td>
                             <button
-                              onClick={() => handleEditClick(kelas)}
+                              onClick={(e) => {
+                                e.preventDefault()
+                                openEditModal(kelas)
+                              }}
                               className="btn btn-icon btn-primary mx-1"
                             >
                               <i className="far fa-edit"></i>
                             </button>
-                            <a href="#" className="btn btn-icon btn-danger">
+                            <a
+                              href="#"
+                              className="btn btn-icon btn-danger"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                handleDelete(kelas.id)
+                              }}
+                            >
                               <i className="fa fa-trash"></i>
                             </a>
                           </td>
@@ -173,7 +369,9 @@ const KelasPage = () => {
                   <div className="modal-dialog">
                     <div className="modal-content">
                       <div className="modal-header">
-                        <h5 className="modal-title" id="editModalLabel">Edit Kelas</h5>
+                        <h5 className="modal-title" id="editModalLabel">
+                          Edit Kelas
+                        </h5>
                         <button
                           type="button"
                           className="close"
@@ -189,24 +387,24 @@ const KelasPage = () => {
                             <label>Nama Fakultas</label>
                             <select
                               className="form-control"
-                              name="fakultas"
-                              value={selectedKelas.fakultas}
-                              onChange={handleChange}
+                              name="yearId"
+                              value={selectedKelas.yearId || ""}
+                              onChange={handleInputChange}
                             >
-                              <option value="fkip">Fakultas Keguruan dan Ilmu Pendidikan</option>
-                              <option value="feb">Fakultas Ekonomi dan Bisnis</option>
-                              <option value="fh">Fakultas Hukum</option>
-                              <option value="fik">Fakultas Ilmu Komputer</option>
-                              <option value="fk">Fakultas Kedokteran</option>
+                              {tahunAjaranList.map((t) => (
+                                <option key={t.id} value={t.id}>
+                                  {t.name}
+                                </option>
+                              ))}
                             </select>
                           </div>
                           <div className="form-group">
                             <label>Program Studi</label>
                             <input
                               className="form-control"
-                              name="prodi"
-                              value={selectedKelas.prodi}
-                              onChange={handleChange}
+                              name="kelas"
+                              value={selectedKelas.name}
+                              onChange={handleInputChange}
                             />
                           </div>
                           <div className="form-group">
@@ -214,8 +412,8 @@ const KelasPage = () => {
                             <input
                               className="form-control"
                               name="tahunAjaran"
-                              value={selectedKelas.tahunAjaran}
-                              onChange={handleChange}
+                              // value={selectedKelas.tahunAjaran}
+                              onChange={handleInputChange}
                             />
                           </div>
                           <div className="form-group">
@@ -223,17 +421,24 @@ const KelasPage = () => {
                             <input
                               className="form-control"
                               name="namaKelas"
-                              value={selectedKelas.namaKelas}
-                              onChange={handleChange}
+                              // value={selectedKelas.namaKelas}
+                              onChange={handleInputChange}
                             />
                           </div>
                         </div>
                       )}
                       <div className="modal-footer">
-                        <button type="button" className="btn btn-secondary" data-dismiss="modal">
+                        <button
+                          type="button"
+                          className="btn btn-secondary"
+                          data-dismiss="modal"
+                        >
                           Tutup
                         </button>
-                        <button onClick={handleSave} className="btn btn-primary">
+                        <button
+                          // onClick={handleInputChange}
+                          className="btn btn-primary"
+                        >
                           Simpan Perubahan
                         </button>
                       </div>
@@ -241,11 +446,95 @@ const KelasPage = () => {
                   </div>
                 </div>
                 {/* End Modal */}
+
               </div>
             </div>
           </div>
         </div>
       </div>
+
+      {isEditModalOpen && (
+        <div
+          className="modal fade show"
+          style={{ display: "block", backgroundColor: "rgba(0,0,0,0.5)" }}
+        >
+          <div className="modal-dialog">
+            <div className="modal-content">
+              <form onSubmit={handleSave}>
+                <div className="modal-header">
+                  <h5 className="modal-title">Edit Program Studi</h5>
+                  <button
+                    type="button"
+                    className="close"
+                    onClick={closeEditModal}
+                  >
+                    <span>&times;</span>
+                  </button>
+                </div>
+                <div className="modal-body">
+                  <div className="form-group">
+                    <label>Nama Program Studi</label>
+                    <select
+                      className="form-control"
+                      name="majorId"
+                      value={selectedKelas.majorId}
+                      onChange={handleInputChange}
+                      required
+                    >
+                      <option value="">-- Pilih Program Studi --</option>
+                      {prodiList.map((f) => (
+                        <option key={f.id} value={f.id}>
+                          {f.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="form-group">
+                    <label>Nama Tahun Ajaran</label>
+                    <select
+                      className="form-control"
+                      name="yearId"
+                      value={selectedKelas.yearId}
+                      onChange={handleInputChange}
+                      required
+                    >
+                      <option value="">-- Pilih Tahun Ajaran --</option>
+                      {tahunAjaranList.map((f) => (
+                        <option key={f.id} value={f.id}>
+                          {f.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="form-group">
+                    <label>Nama Kelas</label>
+                    <input
+                      type="text"
+                      name="name"
+                      className="form-control"
+                      value={selectedKelas.name}
+                      onChange={handleInputChange}
+                      required
+                    />
+                  </div>
+                </div>
+                <div className="modal-footer">
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={closeEditModal}
+                  >
+                    Batal
+                  </button>
+                  <button type="submit" className="btn btn-primary">
+                    Simpan
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 };
