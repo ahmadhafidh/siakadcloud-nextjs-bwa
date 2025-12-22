@@ -113,7 +113,7 @@ const KelasPage = () => {
 
   const fetchFaculties = async () => {
     try {
-      const res = await api.get("/fakultas")
+      const res = await api.get("/faculties")
       const data = res.data.data
       // bikin map facultyId -> facultyName
       const map: { [key: string]: string } = {};
