@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useEffect, use } from 'react';
+import React, { useState, useEffect } from 'react';
 import api from "@/app/lib/axiosInstance";
 
 interface Jadwal {
@@ -201,6 +201,29 @@ const JadwalPage = () => {
     }
     // end of delete data
 
+
+    //function keperluan untuk update
+    function formatForDatetimeLocal(isoString?: string) {
+        if (!isoString) return "";
+        const date = new Date(isoString);
+        const offset = date.getTimezoneOffset(); // selisih menit
+        const local = new Date(date.getTime() - offset * 60000);
+        return local.toISOString().slice(0, 16); // "YYYY-MM-DDTHH:mm"
+    }
+
+    function toISOStringWithTZ(value: string | undefined) {
+        if (!value) return undefined;
+        const date = new Date(value); // "2025-08-06T08:00" jadi Date lokal
+        return date.toISOString(); // => "2025-08-06T01:00:00.000Z"
+    }
+
+    function getDayFromDate(value: string | undefined) {
+        if (!value) return "";
+        const date = new Date(value);
+        return date.toLocaleDateString("id-ID", { weekday: "long" });
+    }
+    //function keperluan untuk update
+
     //start of update data
     // 1. buka popup modal
     const openEditModal = (jadwal: Jadwal) => {
@@ -232,30 +255,28 @@ const JadwalPage = () => {
     };
 
     //3 save data
-    // const handleSave = async (e: React.FormEvent<HTMLFormElement>) => {
-    //     e.preventDefault();
-    //     if (!selectedJadwal.id) return;
+    const handleSave = async (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+        if (!selectedJadwal.id) return;
 
-    //     try {
-    //     const updated = await updateJadwal(selectedJadwal.id, {
-    //         timeStart: toISOStringWithTZ(selectedJadwal.timeStart) ?? "",
-    //         timeEnd: toISOStringWithTZ(selectedJadwal.timeEnd) ?? "",
-    //         day: selectedJadwal.day ?? "",
-    //         classId: selectedJadwal.classId ?? "",
-    //         courseId: selectedJadwal.courseId ?? "",
-    //     });
+        try {
+        const updated = await updateJadwal(selectedJadwal.id, {
+            timeStart: toISOStringWithTZ(selectedJadwal.timeStart) ?? "",
+            timeEnd: toISOStringWithTZ(selectedJadwal.timeEnd) ?? "",
+            day: selectedJadwal.day ?? "",
+            classId: selectedJadwal.classId ?? "",
+            courseId: selectedJadwal.courseId ?? "",
+        });
 
-    //     setJadwalList((prev) =>
-    //         prev.map((p) => (p.id === updated.id ? updated : p))
-    //     );
-    //     closeEditModal();
-    //     fetchJadwal();
-    //     } catch (err) {
-    //     console.error("Gagal update jadwal:", err);
-    //     }
-    // };
-
-
+        setJadwalList((prev) =>
+            prev.map((p) => (p.id === updated.id ? updated : p))
+        );
+        closeEditModal();
+        fetchJadwal();
+        } catch (err) {
+        console.error("Gagal update jadwal:", err);
+        }
+    };
     //end of update data
     
   return (
@@ -465,7 +486,7 @@ const JadwalPage = () => {
             </div>
         </div>
 
-        {/* {isEditModalOpen && (
+        {isEditModalOpen && (
             <div
                 className="modal fade show"
                 style={{ display: "block", backgroundColor: "rgba(0,0,0,0.5)" }}
@@ -572,7 +593,7 @@ const JadwalPage = () => {
                     </div>
                 </div>
             </div>
-        )} */}
+        )}
     </section>
   );
 };
