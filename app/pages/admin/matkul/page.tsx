@@ -296,6 +296,7 @@ const MatkulPage = () => {
                         <th>Dosen</th>
                         <th>Kode Mata Kuliah</th>
                         <th>Nama</th>
+                        <th>SKS</th>
                         <th>Dibuat Pada</th>
                         <th>Aksi</th>
                       </tr>
