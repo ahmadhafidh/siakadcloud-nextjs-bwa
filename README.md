@@ -46,13 +46,13 @@ jose
 
 yarn add -D @types/react-big-calendar @types/highcharts
 
-## Detail Video Course
-### Full Stack JavaScript MERN - SiakadCloud 👉 [Link](https://buildwithangga.com/kelas/full-stack-javascript-mern-2026-sistem-informasi-akademik)
-
+---
+## Video Course materials
 
 Bagian ini berisi **rincian materi dan implementasi video course** pada kelas  
-**Full Stack JavaScript MERN – Sistem Informasi Akademik (SiakadCloud)**.  
+**Full Stack JavaScript MERN 2026 – Sistem Informasi Akademik (SiakadCloud)**.  
 Setiap poin merepresentasikan **pembahasan teknis per video / sesi pembelajaran**.
+Link pembelian [Link](https://buildwithangga.com/kelas/full-stack-javascript-mern-2026-sistem-informasi-akademik)
 
 ---
 ### Penerapan API - ADMIN
