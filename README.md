@@ -71,8 +71,8 @@ Bagian ini berisi **rincian materi dan implementasi video course** pada kelas
 Setiap poin merepresentasikan **pembahasan teknis per video / sesi pembelajaran**.
 
 ---
-
-### Penerapan API ADMIN
+### Penerapan API - ADMIN
+---
 #### Master Data
 - Fakultas
 - Prodi
@@ -90,7 +90,6 @@ Setiap poin merepresentasikan **pembahasan teknis per video / sesi pembelajaran*
 - Users
 - TimeLine
 
-#### Clone Components
 ##### Komponen Table
 - DataTable — bagian utama tabel
 - TablePagination — bagian halaman tabel
@@ -126,8 +125,8 @@ Setiap poin merepresentasikan **pembahasan teknis per video / sesi pembelajaran*
 - Hapus package yang tidak terpakai
 
 ---
-
-### Role DOSEN dan MAHASISWA
+### Penerapan API - DOSEN
+---
 #### Dosen Feature dan Penerapan Komponen
 - Tambah komponen kalender dan implementasi
 - Tambah interface KRS pakai DetailForm
@@ -139,16 +138,22 @@ Setiap poin merepresentasikan **pembahasan teknis per video / sesi pembelajaran*
 - Fix ascending dan status
 - Tambah API ke Jadwal
 
+---
+### Penerapan API - MHS
+---
 #### Mahasiswa Feature dan Penerapan Komponen
 - Tambah API ke KHS
 - Tambah API ke Payment
 - Fix add KRS
 - Fix payment warning
 
-### Page Start
+#### Page Start
 - Tambah route
 - Perbaiki layout sidebar
 
+---
+### FINALIZATION
+---
 ### Dashboard
 - Tambah dashboard dosen dan komponen terkait
 - Tambah dashboard admin dan komponen terkait
