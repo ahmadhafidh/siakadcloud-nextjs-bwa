@@ -3,9 +3,11 @@ import api from "@/app/lib/axiosInstance"
 import React, { useEffect, useState, useMemo } from 'react';
 import {
   ColumnDef,
+  flexRender,
   getCoreRowModel,
   getFilteredRowModel,
   getPaginationRowModel,
+  getSortedRowModel,
   SortingState,
   useReactTable,
 } from "@tanstack/react-table";
@@ -99,9 +101,9 @@ const FakultasPage = () => {
   const handleSubmit = async (e:React.FormEvent) => {
     e.preventDefault()
     await addFakultas({name: nama, code: kode})
-    // setNama("");
-    // setKode("");
-    // fetchFakultas();
+    setNama("");
+    setKode("");
+    fetchFakultas();
   }
 
   // Edit
