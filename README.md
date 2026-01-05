@@ -74,12 +74,12 @@ Link pembelian [Link](https://buildwithangga.com/kelas/full-stack-javascript-mer
 - Users
 - TimeLine
 
-##### Komponen Table
+#### Komponen Table
 - DataTable — bagian utama tabel
 - TablePagination — bagian halaman tabel
 - TableToolbar — bagian search
 
-##### Komponen Form
+#### Komponen Form
 - AddForm — untuk create data
 - EditForm — untuk update data
 

@@ -1,7 +1,23 @@
-'use client';
+"use client";
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from "react";
 import api from "@/app/lib/axiosInstance";
+import {
+  ColumnDef,
+  getCoreRowModel,
+  getFilteredRowModel,
+  getPaginationRowModel,
+  getSortedRowModel,
+  SortingState,
+  useReactTable,
+} from "@tanstack/react-table";
+
+// Komponen reusable
+import DataTable from "@/app/components/table/DataTable";
+import TableToolbar from "@/app/components/table/TableToolbar";
+import TablePagination from "@/app/components/table/TablePagination";
+import ModalEditForm from "@/app/components/form/EditForm";
+import AddForm from "@/app/components/form/AddForm";
 
 interface TahunAjaran {
   id?: number; // bisa undefined saat baru ditambahkan
@@ -13,86 +29,211 @@ interface TahunAjaran {
 }
 
 const TahunAjaranPage = () => {
+  const [loading, setLoading] = useState(true);
   const [data, setData] = useState<TahunAjaran[]>([]);
   const [newTahun, setNewTahun] = useState<TahunAjaran>({
     name: "",
     dateStart: "",
     dateEnd: "",
     status: false,
-  })
+  });
   const [selectedEdit, setSelectedEdit] = useState<TahunAjaran | null>(null);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
 
-  //API CRUD
+  // State untuk search, sorting, pagination
+  const [globalFilter, setGlobalFilter] = useState("");
+  const [sorting, setSorting] = useState<SortingState>([
+    { id: "name", desc: false },
+  ]);
+  const [pagination, setPagination] = useState({
+    pageIndex: 0,
+    pageSize: 10,
+  });
+
+  // ===== API CRUD =====
   const fetchData = async () => {
     try {
-      const res = await api.get("/years")
-      setData(res.data.data)
+      const res = await api.get("/years");
+      setData(res.data.data);
     } catch (err) {
-      console.error("Gagal fetch data:", err)
+      console.error("Gagal fetch data:", err);
     }
-  }
+  };
 
-  const addTahunAjaran = async (e:React.FormEvent) => {
-    e.preventDefault()
+  const addTahunAjaran = async (e: React.FormEvent) => {
+    e.preventDefault();
 
     // Tambahkan sementara di UI dengan temporary id
-    const tempId = Date.now()
+    const tempId = Date.now();
     const tempItem = {
       ...newTahun,
       id: tempId,
       createdAt: new Date().toLocaleDateString("id-ID"),
-    }
+    };
     setData((prev) => [...prev, tempItem]);
 
     try {
-      const res = await api.post("/years", newTahun)
-
+      const res = await api.post("/years", newTahun);
+      // Update item sementara dengan id dari backend
       setData((prev) =>
-       prev.map((item) => (item.id === tempId ? res.data.data : item))
-      )
+        prev.map((item) => (item.id === tempId ? res.data.data : item))
+      );
+      setNewTahun({
+        name: "",
+        dateStart: "",
+        dateEnd: "",
+        status: false,
+      });
     } catch (err) {
       console.error("Gagal tambah tahun ajaran:", err);
       // rollback jika error
       setData((prev) => prev.filter((item) => item.id !== tempId));
     }
-  }
+  };
 
   const handleEdit = (item: TahunAjaran) => {
     setSelectedEdit(item);
     setShowEditModal(true);
   };
 
-  const saveEdit = async(e:React.FormEvent) => {
-    e.preventDefault()
+  const saveEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
     if (!selectedEdit || selectedEdit.id === undefined) return;
 
     try {
-      const res = await api.put(`/years/${selectedEdit.id}`, selectedEdit)
-      setData((prev) => prev.map((item) => (item.id === selectedEdit.id ? res.data.data : item)))
+      const res = await api.put(`/years/${selectedEdit.id}`, selectedEdit);
+      setData((prev) =>
+        prev.map((item) => (item.id === selectedEdit.id ? res.data.data : item))
+      );
       setShowEditModal(false);
       setSelectedEdit(null);
     } catch (err) {
-       console.error("Gagal update:", err);
+      console.error("Gagal update:", err);
     }
-  }
+  };
 
-  const handleDelete = async (id?: number) =>{
-    if(!id) return
-    if(!confirm("yakin hapus tahun ajaran ini")) return
+  const handleDelete = async (id?: number) => {
+    if (!id) return;
+    if (!confirm("Yakin hapus Tahun Ajaran ini?")) return;
 
     try {
-      await api.delete(`/years/${id}`)
+      await api.delete(`/years/${id}`);
       setData((prev) => prev.filter((item) => item.id !== id));
     } catch (err) {
       console.error("Gagal hapus:", err);
     }
-  }
+  };
 
   useEffect(() => {
     fetchData();
-  }, [])
+  }, []);
+
+  // Columns untuk tabel
+  const columns = useMemo<ColumnDef<TahunAjaran>[]>(
+    () => [
+      {
+        accessorFn: (row, index) => index + 1,
+        header: "#",
+      },
+      { accessorKey: "name", header: "Name" },
+      {
+        accessorKey: "dateStart",
+        header: "Tanggal Mulai",
+        cell: (info) =>
+          new Date(info.getValue() as string).toLocaleDateString("id-ID", {
+            weekday: "long",
+            day: "2-digit",
+            month: "long",
+            year: "numeric",
+          }),
+      },
+      {
+        accessorKey: "dateEnd",
+        header: "Tanggal Berakhir",
+        cell: (info) =>
+          new Date(info.getValue() as string).toLocaleDateString("id-ID", {
+            weekday: "long",
+            day: "2-digit",
+            month: "long",
+            year: "numeric",
+          }),
+      },
+      {
+        accessorKey: "status",
+        header: "Status",
+        cell: ({ row }) => {
+          const item = row.original; // dapatkan data asli baris
+          return (
+            <span
+              className={`badge ${
+                item.status ? "badge-success" : "badge-danger"
+              }`}
+            >
+              {item.status ? "Aktif" : "Tidak"}
+            </span>
+          );
+        },
+      },
+      {
+        accessorKey: "createdAt",
+        header: "Dibuat pada",
+        cell: (info) =>
+          new Date(info.getValue() as string).toLocaleDateString("id-ID", {
+            weekday: "long",
+            day: "2-digit",
+            month: "long",
+            year: "numeric",
+          }),
+      },
+      {
+        header: "Aksi",
+        cell: ({ row }) => {
+          const prodi = row.original;
+          return (
+            <>
+              <a
+                href="#"
+                className="btn btn-icon btn-primary m-1"
+                onClick={(e) => {
+                  e.preventDefault();
+                  handleEdit(prodi);
+                }}
+              >
+                <i className="far fa-edit"></i>
+              </a>
+              <a
+                href="#"
+                className="btn btn-icon btn-danger"
+                onClick={(e) => {
+                  e.preventDefault();
+                  delete prodi.id;
+                }}
+              >
+                <i className="fa fa-trash"></i>
+              </a>
+            </>
+          );
+        },
+      },
+    ],
+    []
+  );
+
+  // Inisialisasi react-table
+  const table = useReactTable({
+    data: data,
+    columns,
+    state: { pagination, globalFilter, sorting },
+    getCoreRowModel: getCoreRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+    onSortingChange: setSorting,
+    onPaginationChange: setPagination,
+    onGlobalFilterChange: setGlobalFilter,
+  });
+
   return (
     <section className="section">
       <div className="section-header">
@@ -119,7 +260,7 @@ const TahunAjaranPage = () => {
                   type="button"
                   data-toggle="collapse"
                   data-target="#collapseTambahTahunAjaran"
-                  onClick={()=> setShowAddForm(!showAddForm)}
+                  onClick={() => setShowAddForm(!showAddForm)}
                 >
                   Tambah Tahun Ajaran
                 </button>
@@ -133,7 +274,7 @@ const TahunAjaranPage = () => {
                           type="text"
                           className="form-control"
                           placeholder="Nama Tahun Ajaran"
-                          value={newTahun.name}
+                          value={newTahun.name} // pakai state newTahun
                           onChange={(e) =>
                             setNewTahun({ ...newTahun, name: e.target.value })
                           }
@@ -145,7 +286,6 @@ const TahunAjaranPage = () => {
                         <input
                           type="date"
                           className="form-control"
-                          name="tanggal_mulai"
                           value={newTahun.dateStart}
                           onChange={(e) =>
                             setNewTahun({
@@ -161,8 +301,7 @@ const TahunAjaranPage = () => {
                         <input
                           type="date"
                           className="form-control"
-                          name="tanggal_berakhir"
-                          value={newTahun.dateEnd}
+                          value={newTahun.dateEnd} // pakai state newTahun
                           onChange={(e) =>
                             setNewTahun({
                               ...newTahun,
@@ -205,83 +344,21 @@ const TahunAjaranPage = () => {
                 </div>
 
                 <div className="table-responsive">
-                  <table className="table table-striped" id="table-1">
-                    <thead>
-                      <tr>
-                        <th>#</th>
-                        <th>Nama</th>
-                        <th>Tanggal Dimulai</th>
-                        <th>Tanggal Berakhir</th>
-                        <th>Aktif</th>
-                        <th>Dibuat pada</th>
-                        <th>Aksi</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {data.map((item, index) => (
-                        <tr key={item.id ?? `new-${index}`}>
-                          <td>{index + 1}</td>
-                          <td>{item.name}</td>
-                          <td>
-                            {" "}
-                            {new Date(item.dateStart).toLocaleDateString(
-                              "id-ID",
-                              {
-                                weekday: "long",
-                                day: "2-digit",
-                                month: "long",
-                                year: "numeric",
-                              }
-                            )}
-                          </td>
-                          <td>
-                            {" "}
-                            {new Date(item.dateEnd).toLocaleDateString(
-                              "id-ID",
-                              {
-                                weekday: "long",
-                                day: "2-digit",
-                                month: "long",
-                                year: "numeric",
-                              }
-                            )}
-                          </td>
-                          <td>
-                            <span className={`badge ${item.status ? 'badge-success' : 'badge-secondary'}`}>
-                              {item.status ? 'Aktif' : 'Tidak'}
-                            </span>
-                          </td>
-                          <td>
-                            {item.createdAt
-                              ? new Date(item.createdAt).toLocaleDateString(
-                                  "id-ID",
-                                  {
-                                    weekday: "long",
-                                    day: "2-digit",
-                                    month: "long",
-                                    year: "numeric",
-                                  }
-                                )
-                              : "-"}
-                          </td>
-                          <td>
-                            <button
-                              onClick={() => handleEdit(item)}
-                              className="btn btn-icon btn-primary"
-                            >
-                              <i className="far fa-edit"></i>
-                            </button>
-                            <button
-                              className="btn btn-icon btn-danger"
-                              onClick={() => handleDelete(item.id)}
-                            >
-                              <i className="fa fa-trash"></i>
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                  {/* Toolbar (Search + Page Size) */}
+                  <TableToolbar
+                    globalFilter={globalFilter}
+                    setGlobalFilter={setGlobalFilter}
+                    pageSize={pagination.pageSize}
+                    setPageSize={(size) =>
+                      setPagination((old) => ({ ...old, pageSize: size }))
+                    }
+                  />
+
+                  {/* Tabel */}
+                  <DataTable table={table} />
+
+                  {/* Pagination */}
+                  <TablePagination table={table} />
                 </div>
 
                 {/* Modal Edit */}
@@ -289,13 +366,9 @@ const TahunAjaranPage = () => {
                   <div
                     className="modal fade show d-block"
                     tabIndex={-1}
-                    role="dialog"
-                    style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
+                    style={{ backgroundColor: "rgba(0,0,0,0.5)" }}
                   >
-                    <div
-                      className="modal-dialog modal-dialog-centered"
-                      role="document"
-                    >
+                    <div className="modal-dialog modal-dialog-centered">
                       <div className="modal-content">
                         <form onSubmit={saveEdit}>
                           <div className="modal-header">
@@ -353,26 +426,17 @@ const TahunAjaranPage = () => {
                               />
                             </div>
                             <div className="form-group">
-                              <div className="custom-control custom-switch">
-                                <input
-                                  type="checkbox"
-                                  className="custom-control-input"
-                                  id="editIsAktif"
-                                  checked={selectedEdit.status}
-                                  onChange={(e) =>
-                                    setSelectedEdit({
-                                      ...selectedEdit,
-                                      status: e.target.checked,
-                                    })
-                                  }
-                                />
-                                <label
-                                  className="custom-control-label"
-                                  htmlFor="editIsAktif"
-                                >
-                                  Aktif
-                                </label>
-                              </div>
+                              <label>Aktif</label>
+                              <input
+                                type="checkbox"
+                                checked={selectedEdit.status}
+                                onChange={(e) =>
+                                  setSelectedEdit({
+                                    ...selectedEdit,
+                                    status: e.target.checked,
+                                  })
+                                }
+                              />
                             </div>
                           </div>
                           <div className="modal-footer">
