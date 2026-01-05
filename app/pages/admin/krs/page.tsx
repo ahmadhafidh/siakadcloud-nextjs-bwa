@@ -1,6 +1,22 @@
-'use client';
-import React, { useState, useEffect } from 'react';
+"use client";
+import React, { useState, useEffect, useMemo } from "react";
 import api from "@/app/lib/axiosInstance";
+import {
+  ColumnDef,
+  getCoreRowModel,
+  getFilteredRowModel,
+  getPaginationRowModel,
+  getSortedRowModel,
+  SortingState,
+  useReactTable,
+} from "@tanstack/react-table";
+import { BarLoader } from "react-spinners";
+
+// Komponen reusable
+import DataTable from "@/app/components/table/DataTable";
+import TableToolbar from "@/app/components/table/TableToolbar";
+import TablePagination from "@/app/components/table/TablePagination";
+import { DetailModal, renderTableKrs } from "@/app/components/form/DetailForm";
 
 interface Krs {
   id: string;
@@ -27,23 +43,48 @@ const getKrs = async () => {
 };
 
 const KRSPage = () => {
+  const [loading, setLoading] = useState(true);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
-  const [selectedKrs, setSelectedKrs] = useState<Partial<Krs>>({});
   const [krsList, setKrsList] = useState<Krs[]>([]);
+  const [selectedKrs, setSelectedKrs] = useState<Partial<Krs>>({});
 
-  //ambil data awal
+  // State untuk search, sorting, pagination
+  const [globalFilter, setGlobalFilter] = useState("");
+  const [sorting, setSorting] = useState<SortingState>([
+    { id: "studentName", desc: false },
+  ]);
+  const [pagination, setPagination] = useState({
+    pageIndex: 0,
+    pageSize: 10,
+  });
+
+  // ambil data awal
   useEffect(() => {
-    fetchKrs()
-  }, [])
+    const fetchAll = async () => {
+      try {
+        await fetchKrs();
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchAll();
+  }, []);
 
-  const fetchKrs = async() => {
+  const fetchKrs = async () => {
     try {
-      const data = await getKrs()
-      setKrsList(data)
+      const data = await getKrs();
+      const sortedData = data.sort((a: Krs, b: Krs) =>
+        a.studentName.localeCompare(b.studentName, "id", {
+          sensitivity: "base",
+        })
+      );
+      setKrsList(sortedData);
     } catch (err) {
-      console.error("Gagal fetch prodi:", err)
+      console.error("Gagal fetch prodi:", err);
     }
-  }
+  };
 
   const openDetailModal = (krs: Krs) => {
     setSelectedKrs(krs);
@@ -55,167 +96,132 @@ const KRSPage = () => {
     setSelectedKrs({});
   };
 
+  // Columns untuk tabel
+  const columns = useMemo<ColumnDef<Krs>[]>(
+    () => [
+      {
+        accessorFn: (row, index) => index + 1,
+        header: "#",
+      },
+      { accessorKey: "studentName", header: "Name" },
+      { accessorKey: "studentNumber", header: "NIM" },
+      { accessorKey: "studentYearName", header: "Tahun Ajaran" },
+      {
+        accessorKey: "status", // atau accessorFn: row => row.status
+        header: "Status",
+        cell: ({ row }) => {
+          const check = row.original.status ?? "ONPROCESS";
+          const status = check.toLowerCase();
+          const badgeClass =
+            status === "approved"
+              ? "badge-success"
+              : status === "onprocess"
+              ? "badge-warning"
+              : status === "rejected"
+              ? "badge-danger"
+              : "badge-secondary";
+
+          return <span style={{ width: "100px" }} className={`badge ${badgeClass}`}>{check}</span>;
+        },
+      },
+      {
+        accessorKey: "createdAt",
+        header: "Dibuat pada",
+        cell: (info) =>
+          new Date(info.getValue() as string).toLocaleDateString("id-ID", {
+            weekday: "long",
+            day: "2-digit",
+            month: "long",
+            year: "numeric",
+          }),
+      },
+      {
+        header: "Aksi",
+        cell: ({ row }) => {
+          const prodi = row.original;
+          return (
+            <>
+              <a
+                href="#"
+                className="btn btn-icon btn-primary m-1"
+                onClick={(e) => {
+                  e.preventDefault();
+                  openDetailModal(prodi);
+                }}
+              >
+                <i className="far fa-eye"></i>
+              </a>
+            </>
+          );
+        },
+      },
+    ],
+    []
+  );
+
+  // Inisialisasi react-table
+  const table = useReactTable({
+    data: krsList,
+    columns,
+    state: { pagination, globalFilter, sorting },
+    getCoreRowModel: getCoreRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+    onSortingChange: setSorting,
+    onPaginationChange: setPagination,
+    onGlobalFilterChange: setGlobalFilter,
+  });
+
   return (
-    <section className="section">
-      <div className="section-header">
-        <h1>Kartu Rencana Studi</h1>
-      </div>
+    <>
+      <section className="section">
+        <div className="section-header">
+          <h1>Kartu Rencana Studi</h1>
+        </div>
 
-      <div className="section-body">
-        <div className="row">
-          <div className="col-12">
-            <div className="card">
-              <div className="card-body">
-                <div className="table-responsive">
-                  <table className="table table-striped" id="table-1">
-                    <thead>
-                      <tr>
-                        <th>#</th>
-                        <th>Nama</th>
-                        <th>NIM</th>
-                        <th>Tahun Ajaran</th>
-                        <th>Status</th>
-                        <th>Dibuat pada</th>
-                        <th>Aksi</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {krsList.map((krs, index)=>(
-                      <tr key={krs.id}>
-                        <td>{index+1}</td>
-                        <td>{krs.studentName}</td>
-                        <td>{krs.studentNumber}</td>
-                        <td>{krs.studentYearName}</td>
-                        <td>
-                          <span
-                            className={`badge ${
-                              krs.status.toLowerCase() === "disetujui"
-                                ? "badge-success"
-                                : krs.status.toLowerCase() === "proses"
-                                ? "badge-warning"
-                                : krs.status.toLowerCase() === "ditolak"
-                                ? "badge-danger"
-                                : "badge-secondary" // default kalau tidak cocok
-                            }`}
-                          >
-                            {krs.status}
-                          </span>
-                        </td>
-                        <td>
-                          {new Date(krs.createdAt).toLocaleDateString(
-                            "id-ID",
-                            {
-                                weekday: "long",
-                                day: "2-digit",
-                                month: "long",
-                                year: "numeric",
-                            }
-                          )}
-                        </td>
-                        <td>
-                          <button 
-                            onClick={(e) => {
-                              e.preventDefault();
-                              openDetailModal(krs)
-                            }}
-                            className="btn btn-icon btn-primary"
-                            >
-                            <i className="fa fa-eye"></i>
-                          </button>
-                        </td>
-                      </tr>
-                      ))}
-                    </tbody>
-                  </table>
+        <div className="section-body">
+          <div className="row">
+            <div className="col-12">
+              <div className="card">
+                <div className="card-body">
+                  {loading ? (
+                    <div
+                      className="d-flex align-items-center justify-content-center"
+                      style={{ minHeight: "300px" }}
+                    >
+                      <BarLoader color="#6777ef" />
+                    </div>
+                  ) : (
+                    <>
+                      <TableToolbar
+                        globalFilter={globalFilter}
+                        setGlobalFilter={setGlobalFilter}
+                        pageSize={pagination.pageSize}
+                        setPageSize={(size) =>
+                          setPagination((old) => ({ ...old, pageSize: size }))
+                        }
+                      />
+                      <DataTable table={table} />
+                      <TablePagination table={table} />
+                    </>
+                  )}
                 </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
-
-      {isDetailModalOpen && selectedKrs && (
-        <div
-          className="modal fade show"
-          style={{ display: "block", backgroundColor: "rgba(0,0,0,0.5)" }}
-        >
-          <div className="modal-dialog modal-lg">
-            <div className="modal-content">
-              <div className="modal-header">
-                <h5 className="modal-title">Detail Kartu Rencana Studi</h5>
-                <button
-                  type="button"
-                  className="close"
-                  onClick={closeDetailModal}
-                  aria-label="Close"
-                >
-                  <span aria-hidden="true">&times;</span>
-                </button>
-              </div>
-
-              <div className="modal-body">
-                <div id="krsContent">
-                  <p>
-                    <strong>Nama :</strong> {selectedKrs.studentName}
-                  </p>
-                  <p>
-                    <strong>NIM :</strong> {selectedKrs.studentNumber}
-                  </p>
-                  <p>
-                    <strong>Tahun Ajaran :</strong>{" "}
-                    {selectedKrs.studentYearName}
-                  </p>
-
-                  <div className="table-responsive">
-                    <table className="table table-bordered">
-                      <thead>
-                        <tr>
-                          <th>Kode MK</th>
-                          <th>Nama Mata Kuliah</th>
-                          <th>SKS</th>
-                          <th>Dosen Pengampu</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {selectedKrs.courses?.map((course) => (
-                          <tr key={course.id}>
-                            <td>{course.courseCode}</td>
-                            <td>{course.courseName}</td>
-                            <td>{course.credits}</td>
-                            <td>{course.lectureName}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                      <tfoot>
-                        <tr>
-                          <th colSpan={2}>Total SKS</th>
-                          <th colSpan={2}>
-                            {selectedKrs.courses?.reduce(
-                              (total, c) => total + Number(c.credits),
-                              0
-                            )}
-                          </th>
-                        </tr>
-                      </tfoot>
-                    </table>
-                  </div>
-                </div>
-              </div>
-
-              <div className="modal-footer">
-                <button
-                  type="button"
-                  className="btn btn-primary"
-                  // onClick={() => downloadPDF("krsContent")}
-                >
-                  Download PDF
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-    </section>
+      </section>
+      <DetailModal
+        isOpen={isDetailModalOpen && !!selectedKrs}
+        title="Detail Kartu Rencana Studi"
+        studentName={selectedKrs?.studentName ?? ""}
+        contentId="krsContent"
+        onClose={closeDetailModal}
+      >
+        {selectedKrs && renderTableKrs(selectedKrs)}
+      </DetailModal>
+    </>
   );
 };
 

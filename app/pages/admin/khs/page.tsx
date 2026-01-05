@@ -1,6 +1,22 @@
-'use client';
-import React, { useState, useEffect } from 'react';
+"use client";
+import React, { useState, useEffect, useMemo } from "react";
 import api from "@/app/lib/axiosInstance";
+import {
+  ColumnDef,
+  getCoreRowModel,
+  getFilteredRowModel,
+  getPaginationRowModel,
+  getSortedRowModel,
+  SortingState,
+  useReactTable,
+} from "@tanstack/react-table";
+import { BarLoader } from "react-spinners";
+
+// Komponen reusable
+import DataTable from "@/app/components/table/DataTable";
+import TableToolbar from "@/app/components/table/TableToolbar";
+import TablePagination from "@/app/components/table/TablePagination";
+import { DetailModal, renderTableKhs } from "@/app/components/form/DetailForm";
 
 interface Khs {
   id: string;
@@ -30,23 +46,48 @@ const getKhs = async () => {
 };
 
 const KHSPage = () => {
+  const [loading, setLoading] = useState(true);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [KhsList, setKhsList] = useState<Khs[]>([]);
   const [selectedKhs, setSelectedKhs] = useState<Partial<Khs>>({});
 
-  //ambil data awal
-  useEffect(() => {
-    fetchKhs()
-  }, [])
+  // State untuk search, sorting, pagination
+  const [globalFilter, setGlobalFilter] = useState("");
+  const [sorting, setSorting] = useState<SortingState>([
+    { id: "studentName", desc: false },
+  ]);
+  const [pagination, setPagination] = useState({
+    pageIndex: 0,
+    pageSize: 10,
+  });
 
-  const fetchKhs = async() => {
+  // ambil data awal
+  useEffect(() => {
+    const fetchAll = async () => {
+      try {
+        await fetchKhs();
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchAll();
+  }, []);
+
+  const fetchKhs = async () => {
     try {
-      const data = await getKhs()
-      setKhsList(data)
+      const data = await getKhs();
+      const sortedData = data.sort((a: Khs, b: Khs) =>
+        a.studentName.localeCompare(b.studentName, "id", {
+          sensitivity: "base",
+        })
+      );
+      setKhsList(sortedData);
     } catch (err) {
-      console.error("Gagal fetch prodi:", err)
+      console.error("Gagal fetch KHS:", err);
     }
-  }
+  };
 
   const getGradeLetter = (score?: number) => {
     if (score === undefined || score === null) return "N/A";
@@ -55,10 +96,10 @@ const KHSPage = () => {
     if (score >= 70) return "C";
     if (score >= 60) return "D";
     return "E";
-  }
+  };
 
-  const openDetailModal = (khs: Khs) => {
-    setSelectedKhs(khs);
+  const openDetailModal = (Khs: Khs) => {
+    setSelectedKhs(Khs);
     setIsDetailModalOpen(true);
   };
 
@@ -67,216 +108,116 @@ const KHSPage = () => {
     setSelectedKhs({});
   };
 
+  // Columns untuk tabel
+  const columns = useMemo<ColumnDef<Khs>[]>(
+    () => [
+      {
+        accessorFn: (row, index) => index + 1,
+        header: "#",
+      },
+      { accessorKey: "studentName", header: "Name" },
+      { accessorKey: "studentNumber", header: "NIM" },
+      { accessorKey: "studentYearName", header: "Tahun Ajaran" },
+      { accessorKey: "studentSemester", header: "Semester" },
+      { accessorKey: "gpa", header: "GPA" },
+      {
+        accessorKey: "createdAt",
+        header: "Dibuat pada",
+        cell: (info) =>
+          new Date(info.getValue() as string).toLocaleDateString("id-ID", {
+            weekday: "long",
+            day: "2-digit",
+            month: "long",
+            year: "numeric",
+          }),
+      },
+      {
+        header: "Aksi",
+        cell: ({ row }) => {
+          const prodi = row.original;
+          return (
+            <>
+              <a
+                href="#"
+                className="btn btn-icon btn-primary m-1"
+                onClick={(e) => {
+                  e.preventDefault();
+                  openDetailModal(prodi);
+                }}
+              >
+                <i className="far fa-eye"></i>
+              </a>
+            </>
+          );
+        },
+      },
+    ],
+    []
+  );
+
+  // Inisialisasi react-table
+  const table = useReactTable({
+    data: KhsList,
+    columns,
+    state: { pagination, globalFilter, sorting },
+    getCoreRowModel: getCoreRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+    onSortingChange: setSorting,
+    onPaginationChange: setPagination,
+    onGlobalFilterChange: setGlobalFilter,
+  });
+
   return (
-    <section className="section">
-      <div className="section-header">
-        <h1>Kartu Hasil Studi</h1>
-      </div>
+    <>
+      <section className="section">
+        <div className="section-header">
+          <h1>Kartu Hasil Studi</h1>
+        </div>
 
-      <div className="section-body">
-        <div className="row">
-          <div className="col-12">
-            <div className="card">
-              <div className="card-body">
-                <div className="table-responsive">
-                  <table className="table table-striped" id="table-1">
-                    <thead>
-                      <tr>
-                        <th>#</th>
-                        <th>Nama</th>
-                        <th>NIM</th>
-                        <th>Tahun Ajaran</th>
-                        <th>Semester</th>
-                        <th>GPA</th>
-                        <th>Dibuat pada</th>
-                        <th>Aksi</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {KhsList.map((Khs, index) => (
-                        <tr key={Khs.id}>
-                          <td>{index + 1}</td>
-                          <td>{Khs.studentName}</td>
-                          <td>{Khs.studentNumber}</td>
-                          <td>{Khs.studentYearName}</td>
-                          <td>{Khs.studentSemester}</td>
-                          <td>{Khs.gpa}</td>
-                          <td>
-                            {new Date(Khs.createdAt).toLocaleDateString(
-                              "id-ID",
-                              {
-                                weekday: "long",
-                                day: "2-digit",
-                                month: "long",
-                                year: "numeric",
-                              }
-                            )}
-                          </td>
-                          <td>
-                            <button
-                              onClick={(e) => {
-                                e.preventDefault();
-                                openDetailModal(Khs);
-                              }}
-                              className="btn btn-icon btn-primary mx-1"
-                            >
-                              <i className="fa fa-eye"></i>
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+        <div className="section-body">
+          <div className="row">
+            <div className="col-12">
+              <div className="card">
+                <div className="card-body">
+                  {loading ? (
+                    <div
+                      className="d-flex align-items-center justify-content-center"
+                      style={{ minHeight: "300px" }}
+                    >
+                      <BarLoader color="#6777ef" />
+                    </div>
+                  ) : (
+                    <>
+                      <TableToolbar
+                        globalFilter={globalFilter}
+                        setGlobalFilter={setGlobalFilter}
+                        pageSize={pagination.pageSize}
+                        setPageSize={(size) =>
+                          setPagination((old) => ({ ...old, pageSize: size }))
+                        }
+                      />
+                      <DataTable table={table} />
+                      <TablePagination table={table} />
+                    </>
+                  )}
                 </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
-
-      {isDetailModalOpen && selectedKhs && (
-        <div
-          className="modal fade show"
-          style={{ display: "block", backgroundColor: "rgba(0,0,0,0.5)" }}
-        >
-          <div className="modal-dialog modal-lg">
-            <div className="modal-content">
-              {/* Header */}
-              <div className="modal-header">
-                <h5 className="modal-title">Detail Kartu Hasil Studi</h5>
-                <button
-                  type="button"
-                  className="close"
-                  onClick={closeDetailModal}
-                  aria-label="Close"
-                >
-                  <span aria-hidden="true">&times;</span>
-                </button>
-              </div>
-
-              {/* Body */}
-              <div className="modal-body">
-                <div id="khsContent">
-                  <p>
-                    <strong>Nama :</strong> {selectedKhs.studentName}
-                  </p>
-                  <p>
-                    <strong>NIM :</strong> {selectedKhs.studentNumber}
-                  </p>
-                  <p>
-                    <strong>Tahun Ajaran :</strong>{" "}
-                    {selectedKhs.studentYearName}
-                  </p>
-                  <p>
-                    <strong>Semester :</strong> {selectedKhs.studentSemester}
-                  </p>
-
-                  <div className="table-responsive">
-                    <table className="table table-bordered">
-                      <thead>
-                        <tr>
-                          <th>No</th>
-                          <th>Kode MK</th>
-                          <th>Nama Mata Kuliah</th>
-                          <th>SKS</th>
-                          <th>Huruf Mutu</th>
-                          <th>Bobot</th>
-                          <th>Nilai</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {selectedKhs.courses?.map((course, index) => (
-                          <tr key={course.id}>
-                            <td>{index + 1}</td>
-                            <td>{course.courseCode}</td>
-                            <td>{course.courseName}</td>
-                            <td>{course.credits}</td>
-                            <td>{getGradeLetter(course.courseScore)}</td>
-                            <td>{course.credits}</td>
-                            <td>{course.courseScore ?? "-"}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                      <tfoot>
-                        <tr>
-                          <th colSpan={3}>Total SKS</th>
-                          <td>
-                            {selectedKhs.courses?.reduce(
-                              (total, c) => total + Number(c.credits),
-                              0
-                            )}
-                          </td>
-                          <th colSpan={2}>Total Nilai Akhir</th>
-                          <td>
-                            {selectedKhs.courses &&
-                            selectedKhs.courses.length > 0
-                              ? (() => {
-                                  const avg =
-                                    selectedKhs.courses.reduce(
-                                      (total, c) =>
-                                        total + Number(c.courseScore),
-                                      0
-                                    ) / selectedKhs.courses.length;
-
-                                  // Jika avg bulat, tampilkan tanpa desimal, kalau tidak bulat tampilkan 2 desimal
-                                  return avg % 1 === 0 ? avg : avg.toFixed(2);
-                                })()
-                              : 0}
-                          </td>
-                        </tr>
-                        <tr>
-                          <th colSpan={6} className="text-right">
-                            IP Semester
-                          </th>
-                          <td>
-                            {selectedKhs.courses &&
-                            selectedKhs.courses.length > 0
-                              ? (
-                                  (selectedKhs.courses.reduce(
-                                    (total, c) => total + Number(c.courseScore),
-                                    0
-                                  ) /
-                                    selectedKhs.courses.length /
-                                    100) *
-                                  4
-                                ).toFixed(2)
-                              : 0}
-                          </td>
-                        </tr>
-                        <tr>
-                          <th colSpan={6} className="text-right">
-                            IPK
-                          </th>
-                          <td>{selectedKhs.gpa ?? 0}</td>
-                        </tr>
-                      </tfoot>
-                    </table>
-                  </div>
-                </div>
-              </div>
-
-              {/* Footer */}
-              <div className="modal-footer">
-                <button
-                  type="button"
-                  className="btn btn-primary"
-                  // onClick={() => {
-                  //   const element = document.getElementById("khsContent");
-                  //   if (element) {
-                  //     import("html2pdf.js").then((html2pdf) => {
-                  //       html2pdf.default().from(element).save("KHS.pdf");
-                  //     });
-                  //   }
-                  // }}
-                >
-                  Download PDF
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-    </section>
+      </section>
+      <DetailModal
+        isOpen={isDetailModalOpen && !!selectedKhs}
+        studentName={selectedKhs?.studentName ?? ""}
+        title="Detail Kartu Hasil Studi"
+        contentId="khsContent"
+        onClose={closeDetailModal}
+      >
+        {selectedKhs && renderTableKhs(selectedKhs, getGradeLetter)}
+      </DetailModal>
+    </>
   );
 };
 
