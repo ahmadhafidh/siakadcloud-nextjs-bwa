@@ -2,7 +2,23 @@
 import React from "react";
 import MyBarChart from "../../../components/myBarChart";
 import api from "@/app/lib/axiosInstance";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
+import {
+  ColumnDef,
+  getCoreRowModel,
+  getFilteredRowModel,
+  getPaginationRowModel,
+  getSortedRowModel,
+  SortingState,
+  useReactTable,
+} from "@tanstack/react-table";
+
+// Komponen reusable
+import DataTable from "@/app/components/table/DataTable";
+import TableToolbar from "@/app/components/table/TableToolbar";
+import TablePagination from "@/app/components/table/TablePagination";
+import ModalEditForm from "@/app/components/form/EditForm";
+import AddForm from "@/app/components/form/AddForm";
 
 interface Ukt {
   id: string;
@@ -32,13 +48,24 @@ const deleteGolUkt = async (id: string) => {
 };
 
 const GolUKTPage = () => {
+  const [loading, setLoading] = useState(true);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedGolUkt, setSelectedGolUkt] = useState<Partial<Ukt>>({});
   const [newGolUkt, setNewGolUkt] = useState({
     group: "",
-    amount: null,
+    amount: 0,
   });
   const [goUktList, setGolUktList] = useState<Ukt[]>([]);
+
+  // State untuk search, sorting, pagination
+  const [globalFilter, setGlobalFilter] = useState("");
+  const [sorting, setSorting] = useState<SortingState>([
+    { id: "", desc: false },
+  ]);
+  const [pagination, setPagination] = useState({
+    pageIndex: 0,
+    pageSize: 10,
+  });
 
   // ambil data awal
   useEffect(() => {
@@ -48,7 +75,13 @@ const GolUKTPage = () => {
   const fetchGolUkt = async () => {
     try {
       const data = await getGolUkt();
-      setGolUktList(data);
+      const sortedData = data.sort((a: Ukt, b: Ukt) =>
+        a.group.localeCompare(b.group, "id", {
+          numeric: true,
+          sensitivity: "base",
+        })
+      );
+      setGolUktList(sortedData);
     } catch (err) {
       console.error("Gagal fetch golongan ukt:", err);
     }
@@ -64,9 +97,28 @@ const GolUKTPage = () => {
     setSelectedGolUkt({});
   };
 
+  type SelectOption = { label: string; value: string | number };
+
   const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+    e:
+      | React.ChangeEvent<
+          HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+        >
+      | SelectOption
+      | null
   ) => {
+    if (!e) return;
+
+    // jika e adalah SelectOption
+    if ("value" in e) {
+      setSelectedGolUkt((prev) => ({
+        ...prev,
+        someField: e.value, // ganti someField sesuai field yang dipakai untuk async select
+      }));
+      return;
+    }
+
+    // jika e adalah ChangeEvent
     const { name, value } = e.target;
     setSelectedGolUkt((prev) => ({
       ...prev,
@@ -74,10 +126,7 @@ const GolUKTPage = () => {
     }));
   };
 
-  const handleNewGolUktChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
-  ) => {
-    const { name, value } = e.target;
+  const handleNewGolUktChange = (name: string, value: string | number) => {
     setNewGolUkt((prev) => ({
       ...prev,
       [name]: name === "amount" ? Number(value) : value,
@@ -94,7 +143,7 @@ const GolUKTPage = () => {
 
       const saved = await addGolUkt(payload);
       setGolUktList((prev) => [...prev, saved]);
-      setNewGolUkt({ group: "", amount: null });
+      setNewGolUkt({ group: "", amount: 0 });
       fetchGolUkt();
     } catch (err) {
       console.error("Gagal tambah golongan UKT:", err);
@@ -141,191 +190,193 @@ const GolUKTPage = () => {
     }
   };
 
+  // Columns untuk tabel
+  const columns = useMemo<ColumnDef<Ukt>[]>(
+    () => [
+      {
+        accessorFn: (row, index) => index + 1,
+        header: "#",
+      },
+      { accessorKey: "group", header: "Golongan" },
+      {
+        accessorFn: (row) =>
+          new Intl.NumberFormat("id-ID", {
+            style: "currency",
+            currency: "IDR",
+          }).format(row.amount),
+        header: "Jumlah",
+      },
+      {
+        accessorKey: "createdAt",
+        header: "Dibuat pada",
+        cell: (info) =>
+          new Date(info.getValue() as string).toLocaleDateString("id-ID", {
+            weekday: "long",
+            day: "2-digit",
+            month: "long",
+            year: "numeric",
+          }),
+      },
+      {
+        header: "Aksi",
+        cell: ({ row }) => {
+          const prodi = row.original;
+          return (
+            <>
+              <a
+                href="#"
+                className="btn btn-icon btn-primary m-1"
+                onClick={(e) => {
+                  e.preventDefault();
+                  openEditModal(prodi);
+                }}
+              >
+                <i className="far fa-edit"></i>
+              </a>
+              <a
+                href="#"
+                className="btn btn-icon btn-danger"
+                onClick={(e) => {
+                  e.preventDefault();
+                  handleDelete(prodi.id);
+                }}
+              >
+                <i className="fa fa-trash"></i>
+              </a>
+            </>
+          );
+        },
+      },
+    ],
+    []
+  );
+
+  // Inisialisasi react-table
+  const table = useReactTable({
+    data: goUktList,
+    columns,
+    state: { pagination, globalFilter, sorting },
+    getCoreRowModel: getCoreRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+    onSortingChange: setSorting,
+    onPaginationChange: setPagination,
+    onGlobalFilterChange: setGlobalFilter,
+  });
+
   return (
-    <section className="section">
-      <div className="section-header">
-        <h1>Pembayaran</h1>
-        <div className="section-header-breadcrumb">
-          <div className="breadcrumb-item">Pembayaran</div>
-          <div className="breadcrumb-item">
-            <a href="../pembayaran/golongan-ukt.html">
-              Golongan Kuliah Tunggal
-            </a>
+    <>
+      <section className="section">
+        <div className="section-header">
+          <h1>Pembayaran</h1>
+          <div className="section-header-breadcrumb">
+            <div className="breadcrumb-item">Pembayaran</div>
+            <div className="breadcrumb-item">
+              <a href="../pembayaran/golongan-ukt.html">
+                Golongan Kuliah Tunggal
+              </a>
+            </div>
           </div>
         </div>
-      </div>
 
-      <div className="section-body">
-        <h2 className="section-title">Golongan UKT</h2>
-        <p className="section-lead">
-          Menampilkan semua data Golongan UKT yang ada pada universitas ini
-        </p>
-        <div className="row">
-          <div className="col-12">
-            <div className="card">
-              <div className="card-body">
-                <button
-                  className="btn btn-primary btn-sm footer-left mb-2"
-                  type="button"
-                  data-toggle="collapse"
-                  data-target="#collapseEditGolonganUKT"
-                >
-                  Tambah Golongan UKT
-                </button>
-                <div className="collapse" id="collapseEditGolonganUKT">
-                  <div className="card card-body">
-                    <form onSubmit={handleAddNewGolUkt}>
-                      <div className="form-group">
-                        <label>Golongan</label>
-                        <input
-                          type="text"
-                          className="form-control"
-                          placeholder="Nama Golongan"
-                          name="group"
-                          value={newGolUkt.group}
-                          onChange={handleNewGolUktChange}
-                          required
-                        />
-                      </div>
-                      <div className="form-group">
-                        <label>Jumlah</label>
-                        <input
-                          type="number"
-                          className="form-control"
-                          placeholder="Jumlah"
-                          name="amount"
-                          value={newGolUkt.amount ?? ""}
-                          onChange={handleNewGolUktChange}
-                          required
-                        />
-                      </div>
-                      <button type="submit" className="btn btn-primary">
-                        Simpan
-                      </button>
-                    </form>
-                  </div>
-                </div>
-                <div className="table-responsive">
-                  <table className="table table-striped" id="table-1">
-                    <thead>
-                      <tr>
-                        <th>#</th>
-                        <th>Golongan</th>
-                        <th>Jumlah</th>
-                        <th>Dibuat pada</th>
-                        <th>Aksi</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {goUktList.map((ukt, index) => (
-                        <tr key={ukt.id}>
-                          <td>{index + 1}</td>
-                          <td>{ukt.group}</td>
-                          <td>
-                            {new Intl.NumberFormat("id-ID", {
-                              style: "currency",
-                              currency: "IDR",
-                            }).format(ukt.amount)}
-                          </td>
-                          <td>
-                            {new Date(ukt.createdAt).toLocaleDateString(
-                              "id-ID",
-                              {
-                                weekday: "long",
-                                day: "2-digit",
-                                month: "long",
-                                year: "numeric",
-                              }
-                            )}
-                          </td>
-                          <td>
-                            <button
-                              onClick={() => openEditModal(ukt)}
-                              className="btn btn-icon btn-primary"
-                            >
-                              <i className="far fa-edit"></i>
-                            </button>
-                            <button
-                              onClick={() => handleDelete(ukt.id)}
-                              className="btn btn-icon btn-danger"
-                            >
-                              <i className="fa fa-trash"></i>
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                  {isEditModalOpen && (
-                    <div
-                      className="modal fade show"
-                      style={{
-                        display: "block",
-                        backgroundColor: "rgba(0,0,0,0.5)",
-                      }}
-                    >
-                      <div className="modal-dialog">
-                        <div className="modal-content">
-                          <form onSubmit={handleSave}>
-                            <div className="modal-header">
-                              <h5 className="modal-title">
-                                Edit Program Studi
-                              </h5>
-                              <button
-                                type="button"
-                                className="close"
-                                onClick={closeEditModal}
-                              >
-                                <span>&times;</span>
-                              </button>
-                            </div>
-                            <div className="modal-body">
-                              <div className="form-group">
-                                <label>Nama Golongan</label>
-                                <input
-                                  type="text"
-                                  name="group"
-                                  className="form-control"
-                                  value={selectedGolUkt.group}
-                                  onChange={handleInputChange}
-                                />
-                              </div>
-                              <div className="form-group">
-                                <label>Jumlah</label>
-                                <input
-                                  type="number"
-                                  name="amount"
-                                  className="form-control"
-                                  value={selectedGolUkt.amount}
-                                  onChange={handleInputChange}
-                                  required
-                                />
-                              </div>
-                            </div>
-                            <div className="modal-footer">
-                              <button
-                                type="button"
-                                className="btn btn-secondary"
-                                onClick={closeEditModal}
-                              >
-                                Batal
-                              </button>
-                              <button type="submit" className="btn btn-primary">
-                                Simpan
-                              </button>
-                            </div>
-                          </form>
-                        </div>
-                      </div>
+        <div className="section-body">
+          <h2 className="section-title">Golongan UKT</h2>
+          <p className="section-lead">
+            Menampilkan semua data Golongan UKT yang ada pada universitas ini
+          </p>
+          <div className="row">
+            <div className="col-12">
+              <div className="card">
+                <div className="card-body">
+                  <button
+                    className="btn btn-primary btn-sm footer-left mb-2"
+                    type="button"
+                    data-toggle="collapse"
+                    data-target="#collapseEditGolonganUKT"
+                  >
+                    Tambah Golongan UKT
+                  </button>
+                  <div className="collapse" id="collapseEditGolonganUKT">
+                    <div className="card card-body">
+                      {/* Add Form */}
+                      <AddForm
+                        onSubmit={handleAddNewGolUkt}
+                        collapseTargetId="collapseEditGolonganUKT"
+                        fields={[
+                          {
+                            label: "Nama Golongan",
+                            name: "group",
+                            type: "text",
+                            placeholder: "Masukkan Nama Golongan",
+                            value: newGolUkt.group,
+                            onChange: (e: any) =>
+                              handleNewGolUktChange("group", e.target.value),
+                          },
+                          {
+                            label: "Jumlah",
+                            name: "amount",
+                            type: "number",
+                            placeholder: "Masukkan Jumlah",
+                            value: newGolUkt?.amount,
+                            onChange: (e: any) =>
+                              handleNewGolUktChange("amount", e.target.value),
+                          },
+                        ]}
+                      />
                     </div>
-                  )}
+                  </div>
+                  <div className="table-responsive">
+                    {/* Toolbar (Search + Page Size) */}
+                    <TableToolbar
+                      globalFilter={globalFilter}
+                      setGlobalFilter={setGlobalFilter}
+                      pageSize={pagination.pageSize}
+                      setPageSize={(size) =>
+                        setPagination((old) => ({ ...old, pageSize: size }))
+                      }
+                    />
+
+                    {/* Tabel */}
+                    <DataTable table={table} />
+
+                    {/* Pagination */}
+                    <TablePagination table={table} />
+                  </div>
                 </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
-    </section>
+      </section>
+      {/* Edit Form */}
+      <ModalEditForm
+        title="Edit Program Studi"
+        isOpen={isEditModalOpen}
+        onClose={closeEditModal}
+        onSubmit={handleSave}
+        fields={[
+          {
+            label: "Nama Golongan",
+            name: "group",
+            type: "text",
+            placeholder: "Masukkan Kode Prodi",
+            value: selectedGolUkt?.group ?? "",
+            onChange: handleInputChange,
+          },
+          {
+            label: "Jumlah",
+            name: "amount",
+            type: "number",
+            placeholder: "Masukkan Jumlah UKT",
+            value: selectedGolUkt?.amount ?? "",
+            onChange: handleInputChange,
+          },
+        ]}
+        submitText="Simpan"
+        cancelText="Batal"
+      />
+    </>
   );
 };
 

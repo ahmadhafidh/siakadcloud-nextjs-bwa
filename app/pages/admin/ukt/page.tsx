@@ -1,7 +1,25 @@
-
-'use client';
-import React, { useState, useEffect } from 'react';
+"use client";
+import React from "react";
+import MyBarChart from "../../../components/myBarChart";
 import api from "@/app/lib/axiosInstance";
+import { useState, useEffect, useMemo } from "react";
+import {
+  ColumnDef,
+  getCoreRowModel,
+  getFilteredRowModel,
+  getPaginationRowModel,
+  getSortedRowModel,
+  SortingState,
+  useReactTable,
+} from "@tanstack/react-table";
+
+// Komponen reusable
+import DataTable from "@/app/components/table/DataTable";
+import TableToolbar from "@/app/components/table/TableToolbar";
+import TablePagination from "@/app/components/table/TablePagination";
+import ModalEditForm from "@/app/components/form/EditForm";
+import AddForm from "@/app/components/form/AddForm";
+import FakultasPage from "../fakultas/page";
 
 interface Mahasiswa {
   id: string;
@@ -41,7 +59,12 @@ interface Ukt {
   createdAt: string;
 }
 
-//API services
+interface Option {
+  label: string;
+  value: string;
+}
+
+// API Services
 const getMahasiswa = async () => {
   const res = await api.get("/students");
   return res.data.data;
@@ -65,12 +88,13 @@ const updateUkt = async (
   const res = await api.put(`/tuition-fees/${id}`, data);
   return res.data;
 };
-const deleteUkt = async (id: string) => {
+const deleteProdi = async (id: string) => {
   const res = await api.delete(`/tuition-fees/${id}`);
   return res.data;
 };
 
 const UKTPage = () => {
+  const [loading, setLoading] = useState(true);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedUkt, setSelectedUkt] = useState<Partial<Ukt>>({});
   const [newUkt, setNewUkt] = useState({
@@ -81,17 +105,30 @@ const UKTPage = () => {
   const [MahasiswaList, setMahasiswaList] = useState<Mahasiswa[]>([]);
   const [prodi, setProdi] = useState<any[]>([]);
 
-  //ambil data awal
+  // State untuk search, sorting, pagination
+  const [globalFilter, setGlobalFilter] = useState("");
+  const [sorting, setSorting] = useState<SortingState>([
+    { id: "name", desc: false },
+  ]);
+  const [pagination, setPagination] = useState({
+    pageIndex: 0,
+    pageSize: 10,
+  });
+
+  // ambil data awal
   useEffect(() => {
     fetchMahasiswa();
     fetchProdi();
     fetchUkt();
-  }, [])
+  }, []);
 
   const fetchMahasiswa = async () => {
     try {
       const data = await getMahasiswa();
-      setMahasiswaList(data);
+      const sortedData = data.sort((a: Mahasiswa, b: Mahasiswa) =>
+        a.name.localeCompare(b.name, "id", { sensitivity: "base" })
+      );
+      setMahasiswaList(sortedData);
     } catch (err) {
       console.error("Gagal fetch mahasiswa:", err);
     }
@@ -109,7 +146,12 @@ const UKTPage = () => {
   const fetchUkt = async () => {
     try {
       const data = await getUkt();
-      setUktList(data);
+      const sortedData = data.sort((a: Ukt, b: Ukt) =>
+        a.student.name.localeCompare(b.student.name, "id", {
+          sensitivity: "base",
+        })
+      );
+      setUktList(sortedData);
     } catch (err) {
       console.error("Gagal fetch ukt:", err);
     }
@@ -120,13 +162,26 @@ const UKTPage = () => {
     if (!prodis) return { majorName: "-", facultyName: "-" };
     return { majorName: prodis.name, facultyName: prodis.faculty?.name || "-" };
   };
-  
 
-  //start of create data
-  const handleNewUktChange = (
+  const openEditModal = (ukt: Ukt) => {
+    setSelectedUkt(ukt);
+    setIsEditModalOpen(true);
+  };
+
+  const closeEditModal = () => {
+    setIsEditModalOpen(false);
+    setSelectedUkt({});
+  };
+
+  const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
     const { name, value } = e.target;
+    setSelectedUkt((prev) => ({ ...prev, [name]: value }));
+  };
+
+  // versi baru: menerima nama field + value
+  const handleNewUktChange = (name: string, value: string) => {
     setNewUkt((prev) => ({ ...prev, [name]: value }));
   };
 
@@ -141,14 +196,32 @@ const UKTPage = () => {
       console.error("Gagal tambah ukt:", err);
     }
   };
-  //end of create data
 
-  //delete data
+  const handleSave = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!selectedUkt.id) return;
+
+    try {
+      const updated = await updateUkt(selectedUkt.id, {
+        status: selectedUkt.status,
+      });
+
+      setUktList((prev) =>
+        prev.map((p) => (p.id === updated.id ? updated : p))
+      );
+      console.log("Data yang akan dikirim:", newUkt);
+      closeEditModal();
+      fetchUkt();
+    } catch (err) {
+      console.error("Gagal update ukt:", err);
+    }
+  };
+
   const handleDelete = async (id: string) => {
     if (!confirm("Yakin hapus ukt ini?")) return;
 
     try {
-      await deleteUkt(id);
+      await deleteProdi(id);
       setUktList((prev) => prev.filter((p) => p.id !== id));
       alert("Ukt berhasil dihapus!");
     } catch (err: any) {
@@ -164,244 +237,232 @@ const UKTPage = () => {
     }
   };
 
-  //update data
-  // 1. open modal / popup
-  const openEditModal = (ukt: Ukt) => {
-    setSelectedUkt(ukt);
-    setIsEditModalOpen(true);
-  };
+  // Columns untuk tabel
+  const columns = useMemo<ColumnDef<Ukt>[]>(
+    () => [
+      {
+        accessorFn: (row, index) => index + 1,
+        header: "#",
+      },
+      {
+        accessorKey: "facultyId",
+        header: "Fakultas",
+        accessorFn: (row) =>
+          getProdiAndFakultas(row.student?.class?.majorId ?? "").facultyName,
+      },
+      {
+        accessorKey: "majorId",
+        header: "Program Studi",
+        accessorFn: (row) =>
+          getProdiAndFakultas(row.student?.class?.majorId ?? "").majorName,
+      },
+      {
+        accessorKey: "name",
+        accessorFn: (row) => row.student?.name,
+        header: "Nama",
+      },
+      { accessorFn: (row) => row.student?.studentNumber, header: "NIM" },
+      { accessorFn: (row) => row.student?.semester, header: "Semester" },
+      { accessorFn: (row) => row.status, header: "Status" },
+      {
+        accessorKey: "createdAt",
+        header: "Dibuat pada",
+        cell: (info) =>
+          new Date(info.getValue() as string).toLocaleDateString("id-ID", {
+            weekday: "long",
+            day: "2-digit",
+            month: "long",
+            year: "numeric",
+          }),
+      },
+      {
+        header: "Aksi",
+        cell: ({ row }) => {
+          const prodi = row.original;
+          return (
+            <>
+              <a
+                href="#"
+                className="btn btn-icon btn-primary m-1"
+                onClick={(e) => {
+                  e.preventDefault();
+                  openEditModal(prodi);
+                }}
+              >
+                <i className="far fa-edit"></i>
+              </a>
+              <a
+                href="#"
+                className="btn btn-icon btn-danger"
+                onClick={(e) => {
+                  e.preventDefault();
+                  handleDelete(prodi.id);
+                }}
+              >
+                <i className="fa fa-trash"></i>
+              </a>
+            </>
+          );
+        },
+      },
+    ],
+    [prodi]
+  );
 
-  const closeEditModal = () => {
-    setIsEditModalOpen(false);
-    setSelectedUkt({});
-  };
-
-  // 2. cek apakah di input / selectoption ada data yang berubah
-  const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
-  ) => {
-    const { name, value } = e.target;
-    setSelectedUkt((prev) => ({ ...prev, [name]: value }));
-  };
-
-  // 3. lakukan update data 
-  const handleSave = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    if (!selectedUkt.id) return;
-
-    try {
-      const updated = await updateUkt(selectedUkt.id, {
-        status: selectedUkt.status ?? "",
-      });
-
-      setUktList((prev) =>
-        prev.map((p) => (p.id === updated.id ? updated : p))
-      );
-      closeEditModal();
-      fetchUkt();
-    } catch (err) {
-      console.error("Gagal update ukt:", err);
-    }
-  };
+  // Inisialisasi react-table
+  const table = useReactTable({
+    data: uktList,
+    columns,
+    state: { pagination, globalFilter, sorting },
+    getCoreRowModel: getCoreRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+    onSortingChange: setSorting,
+    onPaginationChange: setPagination,
+    onGlobalFilterChange: setGlobalFilter,
+  });
 
   return (
-    <section className="section">
-      <div className="section-header">
-        <h1>Pembayaran</h1>
-        <div className="section-header-breadcrumb">
-          <div className="breadcrumb-item">Pembayaran</div>
-          <div className="breadcrumb-item"><a href="../pembayaran/ukt.html">Uang Kuliah Tunggal</a></div>
+    <>
+      <section className="section">
+        <div className="section-header">
+          <h1>Pembayaran</h1>
+          <div className="section-header-breadcrumb">
+            <div className="breadcrumb-item">Pembayaran</div>
+            <div className="breadcrumb-item">
+              <a href="../pembayaran/ukt.html">Uang Kuliah Tunggal</a>
+            </div>
+          </div>
         </div>
-      </div>
 
-      <div className="section-body">
-        <h2 className="section-title">UKT</h2>
-        <p className="section-lead">
-          Menampilkan semua data UKT yang ada pada universitas ini
-        </p>
-        <div className="row">
-          <div className="col-12">
-            <div className="card">
-              <div className="card-body">
-                <button className="btn btn-primary btn-sm footer-left mb-2" type="button" data-toggle="collapse" data-target="#collapseEditUKT">
-                  Tambah UKT
-                </button>
-                <div className="collapse" id="collapseEditUKT">
-                  <div className="card card-body">
-                    <form onSubmit={handleAddNewUkt}>
-                      <div className="form-group">
-                        <label htmlFor="nama">Nama</label>
-                        <select
-                          className="form-control"
-                          name="studentId"
-                          value={newUkt.studentId} // pakai newProdi
-                          onChange={handleNewUktChange}
-                          required
-                        >
-                          <option>-- Pilih Mahasiswa --</option>
-                          {MahasiswaList.map((f) => (
-                            <option key={f.id} value={f.id}>
-                              {f.name}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                      <div className="form-group">
-                        <label>Status</label>
-                        <input
-                          type="text"
-                          className="form-control"
-                          placeholder="Status"
-                          name="status"
-                          value={newUkt.status} // pakai newProdi
-                          onChange={handleNewUktChange}
-                        />
-                      </div>
-                      <button type="submit" className="btn btn-primary">Simpan</button>
-                    </form>
+        <div className="section-body">
+          <h2 className="section-title">UKT</h2>
+          <p className="section-lead">
+            Menampilkan semua data UKT yang ada pada universitas ini
+          </p>
+          <div className="row">
+            <div className="col-12">
+              <div className="card">
+                <div className="card-body">
+                  <button
+                    className="btn btn-primary btn-sm footer-left mb-2"
+                    type="button"
+                    data-toggle="collapse"
+                    data-target="#collapseEditUKT"
+                  >
+                    Tambah UKT
+                  </button>
+                  <div className="collapse" id="collapseEditUKT">
+                    <div className="card card-body">
+                      {/* Add Form */}
+                      <AddForm
+                        onSubmit={handleAddNewUkt}
+                        collapseTargetId="collapseEditUKT"
+                        fields={[
+                          {
+                            label: "Nama Mahasiswa",
+                            name: "studentId",
+                            type: "asyncSelect",
+                            placeholder: "Pilih Mahasiswa",
+                            value: newUkt.studentId,
+                            onChange: (opt: any) =>
+                              handleNewUktChange(
+                                "studentId",
+                                opt ? opt.value : ""
+                              ),
+                            options: MahasiswaList.map((f) => ({
+                              label: `${f.name} (${f.class?.major.name})`,
+                              value: f.id,
+                            })),
+                            loadOptions: async (inputValue: string) => {
+                              // bisa filter dari fakultasList lokal
+                              return MahasiswaList.filter((f) =>
+                                f.name
+                                  .toLowerCase()
+                                  .includes(inputValue.toLowerCase())
+                              ).map((f) => ({ label: f.name, value: f.id }));
+                            },
+                          },
+                          {
+                            label: "Status",
+                            name: "status",
+                            type: "text",
+                            placeholder: "Masukkan Status UKT",
+                            value: newUkt?.status,
+                            onChange: (e: any) =>
+                              handleNewUktChange("status", e.target.value),
+                          },
+                        ]}
+                      />
+                    </div>
                   </div>
-                </div>
-                <div className="table-responsive">
-                  <table className="table table-striped" id="table-1">
-                    <thead>
-                      <tr>
-                        <th>#</th>
-                        <th>Fakultas</th>
-                        <th>Program Studi</th>
-                        <th>Nama</th>
-                        <th>NIM</th>
-                        <th>Semester</th>
-                        <th>Status</th>
-                        <th>Dibuat pada</th>
-                        <th>Aksi</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {
-                        uktList.map((ukt, index)=> (
-                          <tr key={ukt.id}>
-                            <td>{index + 1}</td>
-                            <td>
-                              {
-                                getProdiAndFakultas(
-                                  ukt.student?.class?.majorId ?? ""
-                                ).facultyName
-                              }
-                            </td>
-                            <td>
-                              {
-                                getProdiAndFakultas(
-                                  ukt.student?.class?.majorId ?? ""
-                                ).majorName
-                              }
-                            </td>
-                            <td>{ukt.student?.name ?? ""}</td>
-                            <td>{ukt.student?.studentNumber ?? ""}</td>
-                            <td>{ukt.student?.semester ?? ""}</td>
-                            <td>{ukt.status ?? ""}</td>
-                            <td>
-                              {new Date(ukt.createdAt).toLocaleDateString(
-                                "id-ID",
-                                {
-                                  weekday: "long",
-                                  day: "2-digit",
-                                  month: "long",
-                                  year: "numeric",
-                                }
-                              )}
-                            </td>
-                            <td>
-                              <button
-                                onClick={(e) => {
-                                  e.preventDefault();
-                                  openEditModal(ukt);
-                                }}
-                                className="btn btn-icon btn-primary"
-                              >
-                                <i className="far fa-edit"></i>
-                              </button>
-                              <a
-                                href="#"
-                                className="btn btn-icon btn-danger"
-                                onClick={(e) => {
-                                  e.preventDefault();
-                                  handleDelete(ukt.id);
-                                }}
-                              >
-                                <i className="fa fa-trash"></i>
-                              </a>
-                            </td>
-                          </tr>
-                        ))}
+                  <div className="table-responsive">
+                    {/* Toolbar (Search + Page Size) */}
+                    <TableToolbar
+                      globalFilter={globalFilter}
+                      setGlobalFilter={setGlobalFilter}
+                      pageSize={pagination.pageSize}
+                      setPageSize={(size) =>
+                        setPagination((old) => ({ ...old, pageSize: size }))
+                      }
+                    />
 
-                    </tbody>
-                  </table>
+                    {/* Tabel */}
+                    <DataTable table={table} />
+
+                    {/* Pagination */}
+                    <TablePagination table={table} />
+                  </div>
                 </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
-
-      {isEditModalOpen && (
-        <div
-          className="modal fade show"
-          style={{ display: "block", backgroundColor: "rgba(0,0,0,0.5)" }}
-        >
-          <div className="modal-dialog">
-            <div className="modal-content">
-              <form onSubmit={handleSave}>
-                <div className="modal-header">
-                  <h5 className="modal-title">Edit Ukt</h5>
-                  <button
-                    type="button"
-                    className="close"
-                    onClick={closeEditModal}
-                  >
-                    <span>&times;</span>
-                  </button>
-                </div>
-                <div className="modal-body">
-                  <div className="form-group">
-                    <label>Nama Mahasiswa</label>
-                    <input
-                      type="text"
-                      name="studentId"
-                      className="form-control"
-                      value={selectedUkt.student?.name}
-                      readOnly
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label>Status</label>
-                    <input
-                      type="text"
-                      name="status"
-                      className="form-control"
-                      value={selectedUkt.status}
-                      onChange={handleInputChange}
-                      required
-                    />
-                  </div>
-                </div>
-                <div className="modal-footer">
-                  <button
-                    type="button"
-                    className="btn btn-secondary"
-                    onClick={closeEditModal}
-                  >
-                    Batal
-                  </button>
-                  <button type="submit" className="btn btn-primary">
-                    Simpan
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        </div>
-      )}
-    </section>
+      </section>
+      {/* Edit Form */}
+      <ModalEditForm
+        title="Edit UKT"
+        isOpen={isEditModalOpen}
+        onClose={closeEditModal}
+        onSubmit={handleSave}
+        fields={[
+          {
+            label: "Nama Mahasiswa",
+            name: "studentId",
+            type: "text",
+            placeholder: "Masukkan Mahasiswa",
+            value: selectedUkt.student?.name ?? "",
+            onChange: (e) => {
+              if (e && "target" in e) {
+                setSelectedUkt((prev) => ({
+                  ...prev,
+                  studentId: e.target.value, // aman
+                }));
+              }
+            },
+            disabled:true
+          },
+          {
+            label: "Status",
+            name: "status",
+            type: "text",
+            placeholder: "Masukkan Status",
+            value: selectedUkt.status ?? "",
+            onChange: (e) => {
+              if (e && "target" in e) {
+                setSelectedUkt((prev) => ({
+                  ...prev,
+                  status: e.target.value, // aman
+                }));
+              }
+            },
+          },
+        ]}
+        submitText="Simpan"
+        cancelText="Batal"
+      />
+    </>
   );
 };
 

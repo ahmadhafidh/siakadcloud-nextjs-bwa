@@ -1,14 +1,34 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import MyBarChart from "../../../components/myBarChart";
 import api from "@/app/lib/axiosInstance";
 import { time } from "console";
+import {
+  ColumnDef,
+  getCoreRowModel,
+  getFilteredRowModel,
+  getPaginationRowModel,
+  getSortedRowModel,
+  SortingState,
+  useReactTable,
+} from "@tanstack/react-table";
+
+// Komponen reusable
+import DataTable from "@/app/components/table/DataTable";
+import TableToolbar from "@/app/components/table/TableToolbar";
+import TablePagination from "@/app/components/table/TablePagination";
+import ModalEditForm from "@/app/components/form/EditForm";
+import AddForm from "@/app/components/form/AddForm";
 
 interface TimeLine {
   id: string;
   name: string;
   date: string;
   createdAt: string;
+}
+export interface SelectOption {
+  label: string;
+  value: string;
 }
 
 // API Services
@@ -36,6 +56,7 @@ const deleteTimeLine = async (id: string) => {
 };
 
 const JadwalPage = () => {
+  const [loading, setLoading] = useState(true);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedTimeLine, setSelectedTimeLine] = useState<Partial<TimeLine>>(
     {}
@@ -46,6 +67,16 @@ const JadwalPage = () => {
   });
   const [timeLineList, setTimeLineList] = useState<TimeLine[]>([]);
 
+  // State untuk search, sorting, pagination
+  const [globalFilter, setGlobalFilter] = useState("");
+  const [sorting, setSorting] = useState<SortingState>([
+    { id: "name", desc: false },
+  ]);
+  const [pagination, setPagination] = useState({
+    pageIndex: 0,
+    pageSize: 10,
+  });
+
   // ambil data awal
   useEffect(() => {
     fetchTimeLine();
@@ -54,7 +85,10 @@ const JadwalPage = () => {
   const fetchTimeLine = async () => {
     try {
       const data = await getTimeLine();
-      setTimeLineList(data);
+      const sortedData = data.sort((a: TimeLine, b: TimeLine) =>
+        a.name.localeCompare(b.name, "id", { sensitivity: "base" })
+      );
+      setTimeLineList(sortedData);
     } catch (err) {
       console.error("Gagal fetch timeLine:", err);
     }
@@ -77,10 +111,22 @@ const JadwalPage = () => {
     setSelectedTimeLine((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleNewTimeLineChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  const handleInputChangeWrapper = (
+    e:
+      | React.ChangeEvent<
+          HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+        >
+      | SelectOption
+      | null
   ) => {
-    const { name, value } = e.target;
+    if (e && "target" in e) {
+      handleInputChange(
+        e as React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+      );
+    }
+  };
+
+  const handleNewTimeLineChange = (name: string, value: string) => {
     setNewTimeLine((prev) => ({ ...prev, [name]: value }));
   };
 
@@ -155,197 +201,193 @@ const JadwalPage = () => {
     }
   };
 
+  // Columns untuk tabel
+  const columns = useMemo<ColumnDef<TimeLine>[]>(
+    () => [
+      {
+        accessorFn: (row, index) => index + 1,
+        header: "#",
+      },
+      { accessorKey: "name", header: "Name" },
+      {
+        accessorKey: "date",
+        header: "Tanggal",
+        cell: (info) =>
+          new Date(info.getValue() as string).toLocaleDateString("id-ID", {
+            weekday: "long",
+            day: "2-digit",
+            month: "long",
+            year: "numeric",
+          }),
+      },
+      {
+        accessorKey: "createdAt",
+        header: "Dibuat pada",
+        cell: (info) =>
+          new Date(info.getValue() as string).toLocaleDateString("id-ID", {
+            weekday: "long",
+            day: "2-digit",
+            month: "long",
+            year: "numeric",
+          }),
+      },
+      {
+        header: "Aksi",
+        cell: ({ row }) => {
+          const prodi = row.original;
+          return (
+            <>
+              <a
+                href="#"
+                className="btn btn-icon btn-primary m-1"
+                onClick={(e) => {
+                  e.preventDefault();
+                  openEditModal(prodi);
+                }}
+              >
+                <i className="far fa-edit"></i>
+              </a>
+              <a
+                href="#"
+                className="btn btn-icon btn-danger"
+                onClick={(e) => {
+                  e.preventDefault();
+                  handleDelete(prodi.id);
+                }}
+              >
+                <i className="fa fa-trash"></i>
+              </a>
+            </>
+          );
+        },
+      },
+    ],
+    []
+  );
+
+  // Inisialisasi react-table
+  const table = useReactTable({
+    data: timeLineList,
+    columns,
+    state: { pagination, globalFilter, sorting },
+    getCoreRowModel: getCoreRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+    onSortingChange: setSorting,
+    onPaginationChange: setPagination,
+    onGlobalFilterChange: setGlobalFilter,
+  });
+
   return (
-    <section className="section">
-      <div className="section-header">
-        <h1>Akademik</h1>
-        <div className="section-header-breadcrumb">
-          <div className="breadcrumb-item">Akademik</div>
-          <div className="breadcrumb-item">
-            <a href="/admin/akademik/jadwal">Jadwal</a>
+    <>
+      <section className="section">
+        <div className="section-header">
+          <h1>Akademik</h1>
+          <div className="section-header-breadcrumb">
+            <div className="breadcrumb-item">Akademik</div>
+            <div className="breadcrumb-item">
+              <a href="/admin/akademik/jadwal">Jadwal</a>
+            </div>
           </div>
         </div>
-      </div>
 
-      <div className="section-body">
-        <h2 className="section-title">Jadwal</h2>
-        <p className="section-lead">
-          Menampilkan semua data Jadwal yang ada pada universitas ini
-        </p>
-        <div className="row">
-          <div className="col-12">
-            <div className="card">
-              <div className="card-body">
-                <button
-                  className="btn btn-primary btn-sm footer-left mb-2"
-                  type="button"
-                  data-toggle="collapse"
-                  data-target="#collapseEditMatkul"
-                >
-                  Tambah Timeline
-                </button>
-                <div className="collapse" id="collapseEditMatkul">
-                  <div className="card card-body">
-                    <form onSubmit={handleAddNewTimeLine}>
-                      <div className="form-group">
-                        <label>Nama Timeline</label>
-                        <input
-                          type="text"
-                          className="form-control"
-                          name="name"
-                          placeholder="Nama Timeline"
-                          value={newTimeLine.name}
-                          onChange={handleNewTimeLineChange}
-                          required
-                        />
-                      </div>
-                      <div className="form-group">
-                        <label>Tanggal Timeline</label>
-                        <input
-                          type="date"
-                          className="form-control"
-                          name="date"
-                          value={newTimeLine.date}
-                          onChange={handleNewTimeLineChange}
-                          required
-                        />
-                      </div>
-                      <button type="submit" className="btn btn-primary">
-                        Simpan
-                      </button>
-                    </form>
+        <div className="section-body">
+          <h2 className="section-title">Jadwal</h2>
+          <p className="section-lead">
+            Menampilkan semua data Jadwal yang ada pada universitas ini
+          </p>
+          <div className="row">
+            <div className="col-12">
+              <div className="card">
+                <div className="card-body">
+                  <button
+                    className="btn btn-primary btn-sm footer-left mb-2"
+                    type="button"
+                    data-toggle="collapse"
+                    data-target="#collapseEditMatkul"
+                  >
+                    Tambah Timeline
+                  </button>
+                  <div className="collapse" id="collapseEditMatkul">
+                    <div className="card card-body">
+                      {/* Add Form */}
+                      <AddForm
+                        onSubmit={handleAddNewTimeLine}
+                        collapseTargetId="collapseEditMatkul"
+                        fields={[
+                          {
+                            label: "Nama Timeline",
+                            name: "name",
+                            type: "text",
+                            placeholder: "Masukkan Nama Timeline",
+                            value: newTimeLine?.name,
+                            onChange: (e: any) =>
+                              handleNewTimeLineChange("name", e.target.value),
+                          },
+                          {
+                            label: "Tanggal Timeline",
+                            name: "date",
+                            type: "date",
+                            value: newTimeLine?.date,
+                            onChange: (e: any) =>
+                              handleNewTimeLineChange("date", e.target.value),
+                          },
+                        ]}
+                      />
+                    </div>
                   </div>
-                </div>
-                <div className="table-responsive">
-                  <table className="table table-striped" id="table-1">
-                    <thead>
-                      <tr>
-                        <th>#</th>
-                        <th>Nama Timeline</th>
-                        <th>Tanggal</th>
-                        <th>Dibuat pada</th>
-                        <th>Aksi</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {timeLineList.map((timeLine, index) => (
-                        <tr key={timeLine.id}>
-                          <td>{index + 1}</td>
-                          <td>{timeLine.name}</td>
-                          <td>
-                            {new Date(timeLine.date).toLocaleDateString(
-                              "id-ID",
-                              {
-                                weekday: "long",
-                                day: "2-digit",
-                                month: "long",
-                                year: "numeric",
-                              }
-                            )}
-                          </td>
-                          <td>
-                            {new Date(timeLine.createdAt).toLocaleDateString(
-                              "id-ID",
-                              {
-                                weekday: "long",
-                                day: "2-digit",
-                                month: "long",
-                                year: "numeric",
-                              }
-                            )}
-                          </td>
-                          <td>
-                            <button
-                              onClick={(e) => {
-                                e.preventDefault();
-                                openEditModal(timeLine);
-                              }}
-                              className="btn btn-icon btn-primary mx-1"
-                            >
-                              <i className="far fa-edit"></i>
-                            </button>
-                            <a
-                              href="#"
-                              className="btn btn-icon btn-danger"
-                              onClick={(e) => {
-                                e.preventDefault();
-                                handleDelete(timeLine.id!);
-                              }}
-                            >
-                              <i className="fa fa-trash"></i>
-                            </a>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                  <div className="table-responsive">
+                    {/* Toolbar (Search + Page Size) */}
+                    <TableToolbar
+                      globalFilter={globalFilter}
+                      setGlobalFilter={setGlobalFilter}
+                      pageSize={pagination.pageSize}
+                      setPageSize={(size) =>
+                        setPagination((old) => ({ ...old, pageSize: size }))
+                      }
+                    />
+
+                    {/* Tabel */}
+                    <DataTable table={table} />
+
+                    {/* Pagination */}
+                    <TablePagination table={table} />
+                  </div>
                 </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
-      {isEditModalOpen && (
-        <div
-          className="modal fade show"
-          style={{ display: "block", backgroundColor: "rgba(0,0,0,0.5)" }}
-        >
-          <div className="modal-dialog">
-            <div className="modal-content">
-              <form onSubmit={handleSave}>
-                <div className="modal-header">
-                  <h5 className="modal-title">Edit Timeline</h5>
-                  <button
-                    type="button"
-                    className="close"
-                    onClick={closeEditModal}
-                  >
-                    <span>&times;</span>
-                  </button>
-                </div>
-                <div className="modal-body">
-                  <div className="form-group">
-                    <label htmlFor="fakultas">Kelas</label>
-                    <input
-                      type="text"
-                      className="form-control"
-                      name="name"
-                      placeholder="Nama Timeline"
-                      value={selectedTimeLine.name}
-                      onChange={handleInputChange}
-                      required
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label>Tanggal Timeline</label>
-                    <input
-                      type="date"
-                      className="form-control"
-                      name="date"
-                      value={formatDateForInput(selectedTimeLine.date)}
-                      onChange={handleInputChange}
-                      required
-                    />
-                  </div>
-                </div>
-                <div className="modal-footer">
-                  <button
-                    type="button"
-                    className="btn btn-secondary btn-danger"
-                    onClick={closeEditModal}
-                  >
-                    Batal
-                  </button>
-                  <button type="submit" className="btn btn-primary">
-                    Simpan
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        </div>
-      )}
-    </section>
+      </section>
+
+      {/* Edit Form */}
+      <ModalEditForm
+        title="Edit Timeline"
+        isOpen={isEditModalOpen}
+        onClose={closeEditModal}
+        onSubmit={handleSave}
+        fields={[
+          {
+            label: "Nama Prodi",
+            name: "name",
+            type: "text",
+            placeholder: "Masukkan Nama Timeline",
+            value: selectedTimeLine.name ?? "",
+            onChange: handleInputChangeWrapper,
+          },
+          {
+            label: "Tanggal Timeline",
+            name: "date",
+            type: "date",
+            value: formatDateForInput(selectedTimeLine.date),
+            onChange: handleInputChangeWrapper,
+          },
+        ]}
+        submitText="Simpan"
+        cancelText="Batal"
+      />
+    </>
   );
 };
 
