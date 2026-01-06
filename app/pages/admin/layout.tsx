@@ -13,7 +13,7 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
         <div className="navbar-bg"></div>
         <AdminNavbar />
         <AdminSidebar />
-        <div className="main-content">
+        <div className="main-content" suppressHydrationWarning>
           {children}
         </div>
       </div>

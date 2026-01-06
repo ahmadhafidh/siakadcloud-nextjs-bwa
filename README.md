@@ -151,3 +151,8 @@ Link pembelian [Link](https://buildwithangga.com/kelas/full-stack-javascript-mer
 
 ### Midtrans
 - Integrasi API Midtrans
+
+### Deployment
+- Beli Domain dan VPS
+- Deploy BE
+- Deploy FE

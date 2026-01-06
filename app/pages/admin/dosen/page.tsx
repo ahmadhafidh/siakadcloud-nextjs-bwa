@@ -12,14 +12,14 @@ import {
   SortingState,
   useReactTable,
 } from "@tanstack/react-table";
+import { BarLoader } from "react-spinners";
+import { AxiosError } from "axios";
 
 // Komponen reusable
 import DataTable from "@/app/components/table/DataTable";
 import TableToolbar from "@/app/components/table/TableToolbar";
 import TablePagination from "@/app/components/table/TablePagination";
-import ModalEditForm from "@/app/components/form/EditForm";
-import AddForm from "@/app/components/form/AddForm";
-import { InputActionMeta } from "react-select";
+import PasswordStatus from "@/app/components/PasswordStatus";
 
 interface Fakultas {
   id: string;
@@ -38,11 +38,12 @@ interface Prodi {
 }
 
 interface Dosen {
-  faculty: any;
+  faculty: Fakultas;
   id: string;
   name: string;
   email: string;
   lectureNumber: number;
+  password: string;
   position: string;
   majorId: string;
   major?: Prodi & { faculty?: Fakultas };
@@ -113,8 +114,17 @@ const DosenPage = () => {
 
   // ambil data awal
   useEffect(() => {
-    fetchDosen();
-    fetchProdi();
+    const fetchAll = async () => {
+      try {
+        await fetchDosen();
+        await fetchProdi();
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchAll();
   }, []);
 
   const fetchDosen = async () => {
@@ -198,7 +208,7 @@ const DosenPage = () => {
     try {
       const updated = await updateDosen(selectedDosen.id, {
         name: selectedDosen.name ?? "",
-        email: selectedDosen.email ?? "", // ✅ default string
+        email: selectedDosen.email ?? "",
         lectureNumber: selectedDosen.lectureNumber ?? 0,
         position: selectedDosen.position ?? "",
         majorId: selectedDosen.majorId ?? "",
@@ -221,16 +231,25 @@ const DosenPage = () => {
       await deleteProdi(id);
       setDosenList((prev) => prev.filter((d) => d.id !== id));
       alert("Dosen berhasil dihapus!");
-    } catch (err: any) {
-      // Cek apakah error karena foreign key constraint
-      if (err.response?.data?.data?.error?.includes("Foreign key constraint")) {
-        alert(
-          "Dosen tidak bisa dihapus karena masih memiliki data terkait (misal mahasiswa, jadwal, dll)."
-        );
+    } catch (err: unknown) {
+      if (err instanceof AxiosError) {
+        if (
+          err.response?.data?.data?.error?.includes("Foreign key constraint")
+        ) {
+          alert("Data tidak bisa dihapus karena masih memiliki data terkait.");
+        } else {
+          alert("Gagal hapus: " + err.message);
+        }
+        console.error("Gagal hapus:", err);
+      } else if (err instanceof Error) {
+        // fallback jika bukan AxiosError tapi Error biasa
+        alert("Gagal hapus: " + err.message);
+        console.error("Gagal hapus:", err);
       } else {
-        alert("Gagal hapus dosen: " + err.message);
+        // fallback unknown error
+        console.error("Unknown error:", err);
+        alert("Gagal hapus: Terjadi kesalahan yang tidak diketahui");
       }
-      console.error("Gagal hapus dosen:", err);
     }
   };
 
@@ -241,7 +260,20 @@ const DosenPage = () => {
         accessorFn: (row, index) => index + 1,
         header: "#",
       },
-      { accessorKey: "name", header: "Name" },
+      {
+        accessorKey: "name",
+        header: "Name",
+        cell: ({ row }) => {
+          const hasNoPassword = row.original.password === null;
+
+          return (
+            <div className="d-flex align-items-center">
+              <PasswordStatus status={hasNoPassword ? "inactive" : "active"} />
+              <span className="m-2">{row.original.name}</span>
+            </div>
+          );
+        },
+      },
       { accessorKey: "email", header: "Email" },
       { accessorFn: (row) => row.major?.faculty?.name, header: "Fakultas" },
       { accessorFn: (row) => row.major?.name, header: "Program Studi" },
@@ -365,6 +397,7 @@ const DosenPage = () => {
                           <div className="form-group col-md-6">
                             <label>Program Studi</label>
                             <Select
+                              instanceId="majorId"
                               name="majorId"
                               value={
                                 prodiList
@@ -428,85 +461,27 @@ const DosenPage = () => {
                       </form>
                     </div>
                   </div>
-                  <div className="table-responsive">
-                    {/* Toolbar (Search + Page Size) */}
-                    <TableToolbar
-                      globalFilter={globalFilter}
-                      setGlobalFilter={setGlobalFilter}
-                      pageSize={pagination.pageSize}
-                      setPageSize={(size) =>
-                        setPagination((old) => ({ ...old, pageSize: size }))
-                      }
-                    />
-
-                    {/* Tabel */}
-                    <DataTable table={table} />
-
-                    {/* Pagination */}
-                    <TablePagination table={table} />
-
-                    {/* <table className="table table-striped" id="table-1">
-                      <thead>
-                        <tr>
-                          <th>#</th>
-                          <th>Nama</th>
-                          <th>Email</th>
-                          <th>Fakultas</th>
-                          <th>Program Studi</th>
-                          <th>NIP</th>
-                          <th>Jabatan</th>
-                          <th>Dibuat pada</th>
-                          <th>Aksi</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {dosenList.map((dosen, index) => (
-                          <tr key={dosen.id ?? `new-${index}`}>
-                            <td>{index + 1}</td>
-                            <td>{dosen.name}</td>
-                            <td>{dosen.email}</td>
-                            <td>{dosen.major?.faculty?.name}</td>
-                            <td>{dosen.major?.name}</td>
-                            <td>{dosen.lectureNumber}</td>
-                            <td>{dosen.position}</td>
-                            <td>
-                              {new Date(dosen.createdAt).toLocaleDateString(
-                                "id-ID",
-                                {
-                                  weekday: "long",
-                                  day: "2-digit",
-                                  month: "long",
-                                  year: "numeric",
-                                }
-                              )}
-                            </td>
-                            <td>
-                              <a
-                                href="#"
-                                className="btn btn-icon btn-primary"
-                                onClick={(e) => {
-                                  e.preventDefault();
-                                  openEditModal(dosen);
-                                }}
-                              >
-                                <i className="far fa-edit"></i>
-                              </a>
-                              <a
-                                href="#"
-                                className="btn btn-icon btn-danger"
-                                onClick={(e) => {
-                                  e.preventDefault();
-                                  handleDelete(dosen.id!);
-                                }}
-                              >
-                                <i className="fa fa-trash"></i>
-                              </a>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table> */}
-                  </div>
+                  {loading ? (
+                    <div
+                      className="d-flex align-items-center justify-content-center"
+                      style={{ minHeight: "300px" }}
+                    >
+                      <BarLoader color="#6777ef" />
+                    </div>
+                  ) : (
+                    <>
+                      <TableToolbar
+                        globalFilter={globalFilter}
+                        setGlobalFilter={setGlobalFilter}
+                        pageSize={pagination.pageSize}
+                        setPageSize={(size) =>
+                          setPagination((old) => ({ ...old, pageSize: size }))
+                        }
+                      />
+                      <DataTable table={table} />
+                      <TablePagination table={table} />
+                    </>
+                  )}
                 </div>
               </div>
             </div>
@@ -557,6 +532,7 @@ const DosenPage = () => {
                   <div className="form-group">
                     <label>Program studi</label>
                     <Select
+                      instanceId="majorId"
                       name="majorId"
                       value={
                         selectedDosen.majorId

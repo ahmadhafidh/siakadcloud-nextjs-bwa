@@ -1,7 +1,8 @@
 "use client";
-import { Interaction } from "chart.js";
 import React, { useState, useMemo, useEffect, ChangeEvent } from "react";
 import api from "@/app/lib/axiosInstance";
+import { BarLoader } from "react-spinners";
+import { AxiosError } from "axios";
 
 import {
   ColumnDef,
@@ -30,7 +31,11 @@ interface Kelas {
   createdAt: string;
 }
 
-interface Fakultas {}
+interface Faculty {
+  id: string;
+  name: string;
+}
+
 interface Prodi {
   id: string;
   name: string;
@@ -51,7 +56,6 @@ interface Option {
   label: string;
   value: string;
 }
-
 
 // API Services
 
@@ -108,7 +112,7 @@ const KelasPage = () => {
   // State untuk search, sorting, pagination
   const [globalFilter, setGlobalFilter] = useState("");
   const [sorting, setSorting] = useState<SortingState>([
-    { id: "", desc: false },
+    { id: "id", desc: false },
   ]);
   const [pagination, setPagination] = useState({
     pageIndex: 0,
@@ -134,10 +138,10 @@ const KelasPage = () => {
 
   const fetchFaculties = async () => {
     const res = await api.get("/faculties"); // pastikan endpoint return semua fakultas
-    const data = res.data.data;
+    const data: Faculty[] = res.data.data;
     // bikin map facultyId -> facultyName
-    const map: { [key: string]: string } = {};
-    data.forEach((f: any) => {
+    const map: Record<string, string> = {};
+    data.forEach((f) => {
       map[f.id] = f.name;
     });
     setFaculties(map);
@@ -184,13 +188,6 @@ const KelasPage = () => {
   const closeEditModal = () => {
     setIsEditModalOpen(false);
     setSelectedKelas({});
-  };
-
-  const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
-  ) => {
-    const { name, value } = e.target;
-    setSelectedKelas((prev) => ({ ...prev, [name]: value }));
   };
 
   interface SelectOption {
@@ -261,16 +258,25 @@ const KelasPage = () => {
       await deleteKelas(id);
       setKelasList((prev) => prev.filter((p) => p.id !== id));
       alert("kelas berhasil dihapus!");
-    } catch (err: any) {
-      // Cek apakah error karena foreign key constraint
-      if (err.response?.data?.data?.error?.includes("Foreign key constraint")) {
-        alert(
-          "Kelas tidak bisa dihapus karena masih memiliki data terkait (misal mahasiswa, jadwal, dll)."
-        );
+    } catch (err: unknown) {
+      if (err instanceof AxiosError) {
+        if (
+          err.response?.data?.data?.error?.includes("Foreign key constraint")
+        ) {
+          alert("Data tidak bisa dihapus karena masih memiliki data terkait.");
+        } else {
+          alert("Gagal hapus: " + err.message);
+        }
+        console.error("Gagal hapus:", err);
+      } else if (err instanceof Error) {
+        // fallback jika bukan AxiosError tapi Error biasa
+        alert("Gagal hapus: " + err.message);
+        console.error("Gagal hapus:", err);
       } else {
-        alert("Gagal hapus kelas: " + err.message);
+        // fallback unknown error
+        console.error("Unknown error:", err);
+        alert("Gagal hapus: Terjadi kesalahan yang tidak diketahui");
       }
-      console.error("Gagal hapus kelas:", err);
     }
   };
 
@@ -280,6 +286,7 @@ const KelasPage = () => {
       {
         accessorFn: (row, index) => index + 1,
         header: "#",
+        id: "id",
       },
       {
         accessorKey: "major.facultyId",
@@ -401,13 +408,22 @@ const KelasPage = () => {
                             type: "asyncSelect",
                             placeholder: "Pilih Prodi",
                             value: newKelas.majorId,
-                            onChange: (opt: any) =>
-                              handleNewkelasChange({
-                                target: {
-                                  name: "majorId",
-                                  value: opt ? opt.value : "",
-                                },
-                              } as React.ChangeEvent<HTMLInputElement>),
+                            onChange: (e) => {
+                              if (!e) return;
+
+                              if ("value" in e) {
+                                // e adalah SelectOption
+                                handleNewkelasChange({
+                                  target: {
+                                    name: "majorId",
+                                    value: e.value ?? "",
+                                  },
+                                } as React.ChangeEvent<HTMLInputElement>);
+                              } else {
+                                // e adalah ChangeEvent asli
+                                handleNewkelasChange(e);
+                              }
+                            },
                             options: prodiList.map((f) => ({
                               label: f.name,
                               value: f.id,
@@ -429,13 +445,22 @@ const KelasPage = () => {
                             type: "asyncSelect",
                             placeholder: "Pilih Tahun Ajaran",
                             value: newKelas.yearId,
-                            onChange: (opt: any) =>
-                              handleNewkelasChange({
-                                target: {
-                                  name: "yearId",
-                                  value: opt ? opt.value : "",
-                                },
-                              } as React.ChangeEvent<HTMLInputElement>),
+                            onChange: (e) => {
+                              if (!e) return;
+
+                              if ("value" in e) {
+                                // ini SelectOption
+                                handleNewkelasChange({
+                                  target: {
+                                    name: "yearId",
+                                    value: e.value ?? "",
+                                  },
+                                } as React.ChangeEvent<HTMLInputElement>);
+                              } else {
+                                // ini ChangeEvent dari input/select/textarea biasa
+                                handleNewkelasChange(e);
+                              }
+                            },
                             options: tahunAjaranList.map((f) => ({
                               label: f.name,
                               value: f.id,
@@ -463,25 +488,27 @@ const KelasPage = () => {
                       />
                     </div>
                   </div>
-
-                  <div className="table-responsive">
-                    {loading ? (
-                      <p>Loading tabel…</p> // bisa diganti spinner
-                    ) : (
-                      <>
-                        <TableToolbar
-                          globalFilter={globalFilter}
-                          setGlobalFilter={setGlobalFilter}
-                          pageSize={pagination.pageSize}
-                          setPageSize={(size) =>
-                            setPagination((old) => ({ ...old, pageSize: size }))
-                          }
-                        />
-                        <DataTable table={table} />
-                        <TablePagination table={table} />
-                      </>
-                    )}
-                  </div>
+                  {loading ? (
+                    <div
+                      className="d-flex align-items-center justify-content-center"
+                      style={{ minHeight: "300px" }}
+                    >
+                      <BarLoader color="#6777ef" />
+                    </div>
+                  ) : (
+                    <>
+                      <TableToolbar
+                        globalFilter={globalFilter}
+                        setGlobalFilter={setGlobalFilter}
+                        pageSize={pagination.pageSize}
+                        setPageSize={(size) =>
+                          setPagination((old) => ({ ...old, pageSize: size }))
+                        }
+                      />
+                      <DataTable table={table} />
+                      <TablePagination table={table} />
+                    </>
+                  )}
                 </div>
               </div>
             </div>
@@ -526,7 +553,10 @@ const KelasPage = () => {
                 ...prev,
                 yearId: (opt as Option)?.value || "", // simpan id
               })),
-            options: tahunAjaranList.map((f) => ({ label: f.name, value: f.id })),
+            options: tahunAjaranList.map((f) => ({
+              label: f.name,
+              value: f.id,
+            })),
             loadOptions: async (inputValue: string) => {
               // bisa filter dari fakultasList lokal
               return tahunAjaranList
@@ -555,88 +585,6 @@ const KelasPage = () => {
         submitText="Simpan"
         cancelText="Batal"
       />
-      {/* {isEditModalOpen && (
-        <div
-          className="modal fade show"
-          style={{ display: "block", backgroundColor: "rgba(0,0,0,0.5)" }}
-        >
-          <div className="modal-dialog">
-            <div className="modal-content">
-              <form onSubmit={handleSave}>
-                <div className="modal-header">
-                  <h5 className="modal-title">Edit Program Studi</h5>
-                  <button
-                    type="button"
-                    className="close"
-                    onClick={closeEditModal}
-                  >
-                    <span>&times;</span>
-                  </button>
-                </div>
-                <div className="modal-body">
-                  <div className="form-group">
-                    <label>Nama Program Studi</label>
-                    <select
-                      className="form-control"
-                      name="majorId"
-                      value={selectedKelas.majorId}
-                      onChange={handleInputChange}
-                      required
-                    >
-                      <option value="">-- Pilih Program Studi --</option>
-                      {prodiList.map((f) => (
-                        <option key={f.id} value={f.id}>
-                          {f.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="form-group">
-                    <label>Nama Tahun Ajaran</label>
-                    <select
-                      className="form-control"
-                      name="yearId"
-                      value={selectedKelas.yearId}
-                      onChange={handleInputChange}
-                      required
-                    >
-                      <option value="">-- Pilih Tahun Ajaran --</option>
-                      {tahunAjaranList.map((f) => (
-                        <option key={f.id} value={f.id}>
-                          {f.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="form-group">
-                    <label>Nama Kelas</label>
-                    <input
-                      type="text"
-                      name="name"
-                      className="form-control"
-                      value={selectedKelas.name}
-                      onChange={handleInputChange}
-                      required
-                    />
-                  </div>
-                </div>
-                <div className="modal-footer">
-                  <button
-                    type="button"
-                    className="btn btn-secondary"
-                    onClick={closeEditModal}
-                  >
-                    Batal
-                  </button>
-                  <button type="submit" className="btn btn-primary">
-                    Simpan
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        </div>
-      )} */}
     </>
   );
 };
