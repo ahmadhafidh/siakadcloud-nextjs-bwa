@@ -13,6 +13,7 @@ import {
   useReactTable,
 } from "@tanstack/react-table";
 import { BarLoader } from "react-spinners";
+import { AxiosError } from "axios";
 
 // Komponen reusable
 import DataTable from "@/app/components/table/DataTable";
@@ -198,16 +199,25 @@ const JadwalPage = () => {
       await deleteTimeLine(id);
       setTimeLineList((prev) => prev.filter((p) => p.id !== id));
       alert("TimeLine berhasil dihapus!");
-    } catch (err: any) {
-      // Cek apakah error karena foreign key constraint
-      if (err.response?.data?.data?.error?.includes("Foreign key constraint")) {
-        alert(
-          "TimeLine tidak bisa dihapus karena masih memiliki data terkait (misal mahasiswa, jadwal, dll)."
-        );
+    } catch (err: unknown) {
+      if (err instanceof AxiosError) {
+        if (
+          err.response?.data?.data?.error?.includes("Foreign key constraint")
+        ) {
+          alert("Data tidak bisa dihapus karena masih memiliki data terkait.");
+        } else {
+          alert("Gagal hapus: " + err.message);
+        }
+        console.error("Gagal hapus:", err);
+      } else if (err instanceof Error) {
+        // fallback jika bukan AxiosError tapi Error biasa
+        alert("Gagal hapus: " + err.message);
+        console.error("Gagal hapus:", err);
       } else {
-        alert("Gagal hapus timeLine: " + err.message);
+        // fallback unknown error
+        console.error("Unknown error:", err);
+        alert("Gagal hapus: Terjadi kesalahan yang tidak diketahui");
       }
-      console.error("Gagal hapus timeLine:", err);
     }
   };
 
@@ -332,16 +342,34 @@ const JadwalPage = () => {
                             type: "text",
                             placeholder: "Masukkan Nama Timeline",
                             value: newTimeLine?.name,
-                            onChange: (e: any) =>
-                              handleNewTimeLineChange("name", e.target.value),
+                            onChange: (e) => {
+                              if (!e) return;
+
+                              if ("value" in e) {
+                                // Jika SelectOption
+                                handleNewTimeLineChange("name", e.value);
+                              } else {
+                                // Jika ChangeEvent
+                                handleNewTimeLineChange("name", e.target.value);
+                              }
+                            },
                           },
                           {
                             label: "Tanggal Timeline",
                             name: "date",
                             type: "date",
                             value: newTimeLine?.date,
-                            onChange: (e: any) =>
-                              handleNewTimeLineChange("date", e.target.value),
+                            onChange: (e) => {
+                              if (!e) return;
+
+                              if ("value" in e) {
+                                // Jika SelectOption
+                                handleNewTimeLineChange("date", e.value);
+                              } else {
+                                // Jika ChangeEvent
+                                handleNewTimeLineChange("date", e.target.value);
+                              }
+                            },
                           },
                         ]}
                       />

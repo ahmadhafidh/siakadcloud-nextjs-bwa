@@ -1,6 +1,7 @@
 "use client";
 import React from "react";
 import api from "@/app/lib/axiosInstance";
+import { AxiosError } from "axios";
 import { useState, useEffect, useMemo } from "react";
 import {
   ColumnDef,
@@ -186,16 +187,26 @@ const GolUKTPage = () => {
       await deleteGolUkt(id);
       setGolUktList((prev) => prev.filter((p) => p.id !== id));
       alert("Golongan ukt berhasil dihapus!");
-    } catch (err: any) {
-      // Cek apakah error karena foreign key constraint
-      if (err.response?.data?.data?.error?.includes("Foreign key constraint")) {
-        alert(
-          "Golongan ukt tidak bisa dihapus karena masih memiliki data terkait (misal mahasiswa, jadwal, dll)."
-        );
+    } catch (err: unknown) {
+      if (err instanceof AxiosError) {
+        if (
+          err.response?.data?.data?.error?.includes("Foreign key constraint")
+        ) {
+          alert("Data tidak bisa dihapus karena masih memiliki data terkait.");
+        } else {
+          alert("Gagal hapus: " + err.message);
+        }
+        console.error("Gagal hapus:", err);
+      } else if (err instanceof Error) {
+        // fallback jika bukan AxiosError tapi Error biasa
+        alert("Gagal hapus: " + err.message);
+        console.error("Gagal hapus:", err);
       } else {
         alert("Gagal hapus golongan ukt: " + err.message);
+        // fallback unknown error
+        console.error("Unknown error:", err);
+        alert("Gagal hapus: Terjadi kesalahan yang tidak diketahui");
       }
-      console.error("Gagal hapus golongan ukt:", err);
     }
   };
 
@@ -319,8 +330,19 @@ const GolUKTPage = () => {
                             type: "text",
                             placeholder: "Masukkan Nama Golongan",
                             value: newGolUkt.group,
-                            onChange: (e: any) =>
-                              handleNewGolUktChange("group", e.target.value),
+                            onChange: (e) => {
+                              if (!e) return;
+
+                              // Jika e adalah SelectOption
+                              if ("value" in e) {
+                                handleNewGolUktChange("group", e.value);
+                                return;
+                              }
+
+                              // Jika e adalah ChangeEvent
+                              const { value } = e.target;
+                              handleNewGolUktChange("group", value);
+                            },
                           },
                           {
                             label: "Jumlah",
@@ -328,8 +350,19 @@ const GolUKTPage = () => {
                             type: "number",
                             placeholder: "Masukkan Jumlah",
                             value: newGolUkt?.amount,
-                            onChange: (e: any) =>
-                              handleNewGolUktChange("amount", e.target.value),
+                            onChange: (e) => {
+                              if (!e) return;
+
+                              // Jika e adalah SelectOption
+                              if ("value" in e) {
+                                handleNewGolUktChange("amount", e.value);
+                                return;
+                              }
+
+                              // Jika e adalah ChangeEvent
+                              const { value } = e.target;
+                              handleNewGolUktChange("amount", value);
+                            },
                           },
                         ]}
                       />

@@ -23,10 +23,15 @@ export default function LoginPage() {
             Cookies.set("email", res.data.data.email, {expires: 1})
             alert("Login berhasil")
             router.push("/pages/admin/dashboard")
-        } catch (err) {
-            console.error(err);
-            alert("Login gagal. Periksa email atau password!");
-        }
+            } catch (err: unknown) {
+                if (err instanceof Error) {
+                    console.error(err);
+                    alert("Login gagal. Periksa email atau password!");
+                } else {
+                    console.error("Unknown error:", err);
+                    alert("Login gagal. Terjadi kesalahan yang tidak diketahui.");
+                }
+            }
     }
     return (
         <section className="section">

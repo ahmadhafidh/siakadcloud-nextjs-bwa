@@ -13,6 +13,7 @@ import {
   useReactTable,
 } from "@tanstack/react-table";
 import { BarLoader } from "react-spinners";
+import { AxiosError } from "axios";
 
 // Komponen reusable
 import DataTable from "@/app/components/table/DataTable";
@@ -179,16 +180,25 @@ const UserPage = () => {
       await deleteUser(id);
       setUserList((prev) => prev.filter((p) => p.id !== id));
       alert("User berhasil dihapus!");
-    } catch (err: any) {
-      // Cek apakah error karena foreign key constraint
-      if (err.response?.data?.data?.error?.includes("Foreign key constraint")) {
-        alert(
-          "User tidak bisa dihapus karena masih memiliki data terkait (misal mahasiswa, jadwal, dll)."
-        );
+} catch (err: unknown) {
+      if (err instanceof AxiosError) {
+        if (
+          err.response?.data?.data?.error?.includes("Foreign key constraint")
+        ) {
+          alert("Data tidak bisa dihapus karena masih memiliki data terkait.");
+        } else {
+          alert("Gagal hapus: " + err.message);
+        }
+        console.error("Gagal hapus:", err);
+      } else if (err instanceof Error) {
+        // fallback jika bukan AxiosError tapi Error biasa
+        alert("Gagal hapus: " + err.message);
+        console.error("Gagal hapus:", err);
       } else {
-        alert("Gagal hapus user: " + err.message);
+        // fallback unknown error
+        console.error("Unknown error:", err);
+        alert("Gagal hapus: Terjadi kesalahan yang tidak diketahui");
       }
-      console.error("Gagal hapus user:", err);
     }
   };
 
@@ -304,8 +314,17 @@ const UserPage = () => {
                             type: "text",
                             placeholder: "Masukkan Nama User",
                             value: newUser?.name,
-                            onChange: (e: any) =>
-                              handleNewUserChange("name", e.target.value),
+                            onChange: (e) => {
+                              if (!e) return;
+
+                              if ("value" in e) {
+                                // Jika SelectOption
+                                handleNewUserChange("name", e.value);
+                              } else {
+                                // Jika ChangeEvent
+                                handleNewUserChange("name", e.target.value);
+                              }
+                            },
                           },
                           {
                             label: "Email",
@@ -313,8 +332,17 @@ const UserPage = () => {
                             type: "text",
                             placeholder: "Masukkan Email",
                             value: newUser?.email,
-                            onChange: (e: any) =>
-                              handleNewUserChange("email", e.target.value),
+                            onChange: (e) => {
+                              if (!e) return;
+
+                              if ("value" in e) {
+                                // Jika SelectOption
+                                handleNewUserChange("email", e.value);
+                              } else {
+                                // Jika ChangeEvent
+                                handleNewUserChange("email", e.target.value);
+                              }
+                            },
                           },
                           {
                             label: "Password",
@@ -322,8 +350,17 @@ const UserPage = () => {
                             type: "text",
                             placeholder: "Masukkan Password",
                             value: newUser?.password,
-                            onChange: (e: any) =>
-                              handleNewUserChange("password", e.target.value),
+                            onChange: (e) => {
+                              if (!e) return;
+
+                              if ("value" in e) {
+                                // Jika SelectOption
+                                handleNewUserChange("password", e.value);
+                              } else {
+                                // Jika ChangeEvent
+                                handleNewUserChange("password", e.target.value);
+                              }
+                            },
                           },
                           {
                             label: "Role",
@@ -331,11 +368,20 @@ const UserPage = () => {
                             type: "asyncSelect",
                             placeholder: "Pilih Role",
                             value: newUser.role,
-                            onChange: (opt: any) =>
-                              handleNewUserChange(
-                                "role",
-                                opt ? opt.value : "admin"
-                              ),
+                            onChange: (e) => {
+                              if (!e) return;
+
+                              if ("value" in e) {
+                                // Jika SelectOption
+                                handleNewUserChange("role", e.value ?? "admin");
+                              } else {
+                                // Jika ChangeEvent
+                                handleNewUserChange(
+                                  "role",
+                                  e.target.value ?? "admin"
+                                );
+                              }
+                            },
                             options: roleOptions.map((f) => ({
                               label: f.label,
                               value: f.value,

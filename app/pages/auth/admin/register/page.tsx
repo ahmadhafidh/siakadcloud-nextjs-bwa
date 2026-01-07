@@ -29,9 +29,14 @@ export default function LoginPage() {
             })
             alert("Register Berhasil");
             router.push("/pages/auth/admin/login");
-        } catch (error) {
-            console.log(error)
-            alert("Register gagal. Periksa email atau password!");
+        } catch (err: unknown) {
+            if (err instanceof Error) {
+                console.error(err);
+                alert("Register gagal. Periksa email atau password!");
+            } else {
+                console.error("Unknown error:", err);
+                alert("Register gagal. Terjadi kesalahan yang tidak diketahui.");
+            }
         }
     }
     return (

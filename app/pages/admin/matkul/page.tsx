@@ -12,6 +12,7 @@ import {
   useReactTable,
 } from "@tanstack/react-table";
 import { BarLoader } from "react-spinners";
+import { AxiosError } from "axios";
 
 // Komponen reusable
 import DataTable from "@/app/components/table/DataTable";
@@ -211,16 +212,25 @@ const MatkulPage = () => {
       await deleteMatkul(id);
       setMatkulList((prev) => prev.filter((p) => p.id !== id));
       alert("Matkul berhasil dihapus!");
-    } catch (err: any) {
-      // Cek apakah error karena foreign key constraint
-      if (err.response?.data?.data?.error?.includes("Foreign key constraint")) {
-        alert(
-          "Matkul tidak bisa dihapus karena masih memiliki data terkait (misal mahasiswa, jadwal, dll)."
-        );
+    } catch (err: unknown) {
+      if (err instanceof AxiosError) {
+        if (
+          err.response?.data?.data?.error?.includes("Foreign key constraint")
+        ) {
+          alert("Data tidak bisa dihapus karena masih memiliki data terkait.");
+        } else {
+          alert("Gagal hapus: " + err.message);
+        }
+        console.error("Gagal hapus:", err);
+      } else if (err instanceof Error) {
+        // fallback jika bukan AxiosError tapi Error biasa
+        alert("Gagal hapus: " + err.message);
+        console.error("Gagal hapus:", err);
       } else {
-        alert("Gagal hapus matkul: " + err.message);
+        // fallback unknown error
+        console.error("Unknown error:", err);
+        alert("Gagal hapus: Terjadi kesalahan yang tidak diketahui");
       }
-      console.error("Gagal hapus matkul:", err);
     }
   };
 
@@ -347,11 +357,20 @@ const MatkulPage = () => {
                           type: "asyncSelect",
                           placeholder: "Pilih Dosen",
                           value: newMatkul.lectureId,
-                          onChange: (opt: any) =>
-                            handleNewMatkulChange(
-                              "lectureId",
-                              opt ? opt.value : ""
-                            ),
+                          onChange: (e) => {
+                            // jika null, skip
+                            if (!e) return;
+
+                            // jika SelectOption, ambil value
+                            if ("value" in e) {
+                              handleNewMatkulChange("lectureId", e.value ?? "");
+                              return;
+                            }
+
+                            // jika event, ambil value dari target
+                            handleNewMatkulChange("lectureId", e.target.value);
+                          },
+
                           options: dosenList.map((f) => ({
                             label: f.name,
                             value: f.id,
@@ -373,8 +392,15 @@ const MatkulPage = () => {
                           type: "text",
                           placeholder: "Masukkan Nama Mata Kuliah",
                           value: newMatkul?.name,
-                          onChange: (e: any) =>
-                            handleNewMatkulChange("name", e.target.value),
+                          onChange: (e) => {
+                            if (!e) return;
+
+                            if ("value" in e) {
+                              handleNewMatkulChange("name", e.value);
+                              return;
+                            }
+                            handleNewMatkulChange("name", e.target.value);
+                          },
                         },
                         {
                           label: "Kode",
@@ -382,8 +408,15 @@ const MatkulPage = () => {
                           type: "text",
                           placeholder: "Masukkan Kode Mata Kuliah",
                           value: newMatkul?.code,
-                          onChange: (e: any) =>
-                            handleNewMatkulChange("code", e.target.value),
+                          onChange: (e) => {
+                            if (!e) return;
+
+                            if ("value" in e) {
+                              handleNewMatkulChange("code", e.value);
+                              return;
+                            }
+                            handleNewMatkulChange("code", e.target.value);
+                          },
                         },
                         {
                           label: "SKS",
@@ -391,8 +424,15 @@ const MatkulPage = () => {
                           type: "number",
                           placeholder: "Masukkan Jumlah SKS",
                           value: newMatkul?.credits,
-                          onChange: (e: any) =>
-                            handleNewMatkulChange("credits", e.target.value),
+                          onChange: (e) => {
+                            if (!e) return;
+
+                            if ("value" in e) {
+                              handleNewMatkulChange("credits", e.value);
+                              return;
+                            }
+                            handleNewMatkulChange("credits", e.target.value);
+                          },
                         },
                       ]}
                     />

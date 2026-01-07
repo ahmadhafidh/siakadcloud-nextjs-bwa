@@ -12,6 +12,7 @@ import {
   useReactTable,
 } from "@tanstack/react-table";
 import { BarLoader } from "react-spinners";
+import { AxiosError } from "axios";
 
 // Komponen reusable
 import DataTable from "@/app/components/table/DataTable";
@@ -103,7 +104,7 @@ const UKTPage = () => {
   });
   const [uktList, setUktList] = useState<Ukt[]>([]);
   const [MahasiswaList, setMahasiswaList] = useState<Mahasiswa[]>([]);
-  const [prodi, setProdi] = useState<any[]>([]);
+  const [prodi, setProdi] = useState<Prodi[]>([]);
 
   // State untuk search, sorting, pagination
   const [globalFilter, setGlobalFilter] = useState("");
@@ -226,16 +227,25 @@ const UKTPage = () => {
       await deleteProdi(id);
       setUktList((prev) => prev.filter((p) => p.id !== id));
       alert("Ukt berhasil dihapus!");
-    } catch (err: any) {
-      // Cek apakah error karena foreign key constraint
-      if (err.response?.data?.data?.error?.includes("Foreign key constraint")) {
-        alert(
-          "Ukt tidak bisa dihapus karena masih memiliki data terkait (misal mahasiswa, jadwal, dll)."
-        );
+        } catch (err: unknown) {
+      if (err instanceof AxiosError) {
+        if (
+          err.response?.data?.data?.error?.includes("Foreign key constraint")
+        ) {
+          alert("Data tidak bisa dihapus karena masih memiliki data terkait.");
+        } else {
+          alert("Gagal hapus: " + err.message);
+        }
+        console.error("Gagal hapus:", err);
+      } else if (err instanceof Error) {
+        // fallback jika bukan AxiosError tapi Error biasa
+        alert("Gagal hapus: " + err.message);
+        console.error("Gagal hapus:", err);
       } else {
-        alert("Gagal hapus Ukt: " + err.message);
+        // fallback unknown error
+        console.error("Unknown error:", err);
+        alert("Gagal hapus: Terjadi kesalahan yang tidak diketahui");
       }
-      console.error("Gagal hapus Ukt:", err);
     }
   };
 
@@ -368,11 +378,17 @@ const UKTPage = () => {
                             type: "asyncSelect",
                             placeholder: "Pilih Mahasiswa",
                             value: newUkt.studentId,
-                            onChange: (opt: any) =>
-                              handleNewUktChange(
-                                "studentId",
-                                opt ? opt.value : ""
-                              ),
+                            onChange: (e) => {
+                              if (!e) return;
+
+                              if ("value" in e) {
+                                // Jika SelectOption
+                                handleNewUktChange("studentId", e.value);
+                              } else {
+                                // Jika ChangeEvent
+                                handleNewUktChange("studentId", e.target.value);
+                              }
+                            },
                             options: MahasiswaList.map((f) => ({
                               label: `${f.name} (${f.class?.major.name})`,
                               value: f.id,
@@ -392,8 +408,17 @@ const UKTPage = () => {
                             type: "text",
                             placeholder: "Masukkan Status UKT",
                             value: newUkt?.status,
-                            onChange: (e: any) =>
-                              handleNewUktChange("status", e.target.value),
+                            onChange: (e) => {
+                              if (!e) return;
+
+                              if ("value" in e) {
+                                // Jika SelectOption
+                                handleNewUktChange("status", e.value);
+                              } else {
+                                // Jika ChangeEvent
+                                handleNewUktChange("status", e.target.value);
+                              }
+                            },
                           },
                         ]}
                       />

@@ -343,11 +343,20 @@ const PembayaranPage = () => {
                           type: "asyncSelect",
                           placeholder: "Pilih Mahasiswa",
                           value: newPembayaran.studentId,
-                          onChange: (opt: any) =>
-                            handleNewPembayaranChange(
-                              "studentId",
-                              opt ? opt.value : ""
-                            ),
+                          onChange: (e) => {
+                            if (!e) return;
+
+                            if ("value" in e) {
+                              // Jika SelectOption
+                              handleNewPembayaranChange("studentId", e.value);
+                            } else {
+                              // Jika ChangeEvent
+                              handleNewPembayaranChange(
+                                "studentId",
+                                e.target.value
+                              );
+                            }
+                          },
                           options: mahasiswaList.map((f) => ({
                             label: f.name,
                             value: f.id,
@@ -369,11 +378,20 @@ const PembayaranPage = () => {
                           type: "asyncSelect",
                           placeholder: "Pilih Status",
                           value: newPembayaran.status,
-                          onChange: (opt: any) =>
-                            handleNewPembayaranChange(
-                              "status",
-                              opt ? opt.value : "UNPAID"
-                            ),
+                          onChange: (e) => {
+                            if (!e) return;
+
+                            if ("value" in e) {
+                              // Jika SelectOption
+                              handleNewPembayaranChange("status", e.value);
+                            } else {
+                              // Jika ChangeEvent
+                              handleNewPembayaranChange(
+                                "status",
+                                e.target.value
+                              );
+                            }
+                          },
                           options: statusOptions.map((f) => ({
                             label: f.label,
                             value: f.value,

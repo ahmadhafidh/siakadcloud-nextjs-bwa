@@ -12,7 +12,7 @@ const AdminSidebar = () => {
   };
 
   return (
-    <div className="main-sidebar sidebar-style-2">
+    <div className="main-sidebar sidebar-style-2 suppressHydrationWarning">
       <aside id="sidebar-wrapper">
         <div className="sidebar-brand">
           <Link href="/pages/admin/dashboard">
@@ -45,24 +45,24 @@ const AdminSidebar = () => {
               <span>Tahun Ajaran</span>
             </Link>
           </li>
-          {/* <li className={isActive('/pages/admin/kelas') ? 'active' : ''}>
+          <li className={isActive('/pages/admin/kelas') ? 'active' : ''}>
             <Link className="nav-link" href="/pages/admin/kelas">
               <i className="ion-ios-bookmarks"></i>
               <span>Kelas</span>
             </Link>
-          </li> */}
+          </li>
           <li className={isActive('/pages/admin/users') ? 'active' : ''}>
             <Link className="nav-link" href="/pages/admin/users">
               <i className="ion-ios-bookmarks"></i>
               <span>Users</span>
             </Link>
           </li>
-          <li className={isActive('/pages/admin/peran') ? 'active' : ''}>
+          {/* <li className={isActive('/pages/admin/peran') ? 'active' : ''}>
             <Link className="nav-link" href="/pages/admin/peran">
               <i className="ion-key"></i>
               <span>Peran</span>
             </Link>
-          </li>
+          </li> */}
           <li className="menu-header">Pengguna</li>
           <li className={isActive('/pages/admin/mahasiswa') ? 'active' : ''}>
             <Link className="nav-link" href="/pages/admin/mahasiswa">
@@ -87,6 +87,12 @@ const AdminSidebar = () => {
             <Link className="nav-link" href="/pages/admin/jadwal">
               <i className="ion-calendar"></i>
               <span>Jadwal</span>
+            </Link>
+          </li>
+          <li className={isActive("/pages/admin/time-line") ? "active" : ""}>
+            <Link className="nav-link" href="/pages/admin/time-line">
+              <i className=" ion-ios-calendar"></i>
+              <span>Timeline</span>
             </Link>
           </li>
           <li className="menu-header">Pembayaran</li>

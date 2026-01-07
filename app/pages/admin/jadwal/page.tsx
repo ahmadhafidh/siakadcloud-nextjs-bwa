@@ -11,6 +11,7 @@ import {
   useReactTable,
 } from "@tanstack/react-table";
 import { BarLoader } from "react-spinners";
+import { AxiosError } from "axios";
 
 // Komponen reusable
 import DataTable from "@/app/components/table/DataTable";
@@ -319,14 +320,25 @@ const JadwalPage = () => {
       await deleteJadwal(id);
       setJadwalList((prev) => prev.filter((p) => p.id !== id));
       alert("Jadwal berhasil dihapus!");
-    } catch (err: any) {
-      // Cek apakah error karena foreign key constraint
-      if (err.response?.data?.data?.error?.includes("Foreign key constraint")) {
-        alert(
-          "Jadwal tidak bisa dihapus karena masih memiliki data terkait (misal mahasiswa, jadwal, dll)."
-        );
+    } catch (err: unknown) {
+      if (err instanceof AxiosError) {
+        if (
+          err.response?.data?.data?.error?.includes("Foreign key constraint")
+        ) {
+          alert("Data tidak bisa dihapus karena masih memiliki data terkait.");
+        } else {
+          alert("Gagal hapus: " + err.message);
+        }
+        console.error("Gagal hapus:", err);
+      } else if (err instanceof Error) {
+        // fallback jika bukan AxiosError tapi Error biasa
+        alert("Gagal hapus: " + err.message);
+        console.error("Gagal hapus:", err);
       } else {
         alert("Gagal hapus jadwal: " + err.message);
+        // fallback unknown error
+        console.error("Unknown error:", err);
+        alert("Gagal hapus: Terjadi kesalahan yang tidak diketahui");
       }
       console.error("Gagal hapus jadwal:", err);
     }
@@ -482,11 +494,17 @@ const JadwalPage = () => {
                             type: "asyncSelect",
                             placeholder: "Pilih Kelas",
                             value: newJadwal.classId,
-                            onChange: (opt: any) =>
-                              handleNewJadwalChange2(
-                                "classId",
-                                opt ? opt.value : ""
-                              ),
+                            onChange: (e) => {
+                              if (!e) return;
+                              // jika async select
+                              if ("value" in e) {
+                                handleNewJadwalChange2("classId", e.value);
+                                return;
+                              }
+                              // jika input biasa
+                              const { value } = e.target;
+                              handleNewJadwalChange2("classId", value);
+                            },
                             options: kelasList.map((f) => ({
                               label: f.name,
                               value: f.id,
@@ -508,11 +526,17 @@ const JadwalPage = () => {
                             type: "asyncSelect",
                             placeholder: "Pilih Mata Kuliah",
                             value: newJadwal.courseId,
-                            onChange: (opt: any) =>
-                              handleNewJadwalChange2(
-                                "courseId",
-                                opt ? opt.value : ""
-                              ),
+                            onChange: (e) => {
+                              if (!e) return;
+                              // jika async select
+                              if ("value" in e) {
+                                handleNewJadwalChange2("courseId", e.value);
+                                return;
+                              }
+                              // jika input biasa
+                              const { value } = e.target;
+                              handleNewJadwalChange2("courseId", value);
+                            },
                             options: matkulList.map((f) => ({
                               label: f.name,
                               value: f.id,
@@ -533,27 +557,51 @@ const JadwalPage = () => {
                             name: "timeStart",
                             type: "datetime-local",
                             value: newJadwal?.timeStart,
-                            onChange: (e: any) =>
-                              handleNewJadwalChange2(
-                                "timeStart",
-                                e.target.value
-                              ),
+                            onChange: (e) => {
+                              if (!e) return;
+                              // Jika e adalah SelectOption
+                              if ("value" in e) {
+                                handleNewJadwalChange2("timeStart", e.value);
+                                return;
+                              }
+                              const { value } = e.target;
+
+                              handleNewJadwalChange2("timeStart", value);
+                            },
                           },
                           {
                             label: "Tanggal dan Jam Berakhir",
                             name: "timeEnd",
                             type: "datetime-local",
                             value: newJadwal?.timeEnd,
-                            onChange: (e: any) =>
-                              handleNewJadwalChange2("timeEnd", e.target.value),
+                            onChange: (e) => {
+                              if (!e) return;
+                              // Jika e adalah SelectOption
+                              if ("value" in e) {
+                                handleNewJadwalChange2("timeEnd", e.value);
+                                return;
+                              }
+                              const { value } = e.target;
+
+                              handleNewJadwalChange2("timeEnd", value);
+                            },
                           },
                           {
                             label: "Hari",
                             name: "day",
                             type: "text",
                             value: newJadwal?.day,
-                            onChange: (e: any) =>
-                              handleNewJadwalChange2("day", e.target.value),
+                            onChange: (e) => {
+                              if (!e) return;
+                              // Jika e adalah SelectOption
+                              if ("value" in e) {
+                                handleNewJadwalChange2("day", e.value);
+                                return;
+                              }
+                              const { value } = e.target;
+
+                              handleNewJadwalChange2("day", value);
+                            },
                             disabled: true,
                           },
                         ]}
@@ -667,7 +715,16 @@ const JadwalPage = () => {
             type: "text",
             value: selectedJadwal.day ?? "",
             disabled: true,
-            onChange: (e: any) => handleInputChange("day", e.target.value),
+            onChange: (e) => {
+              if (!e) return;
+              if ("value" in e) {
+                handleInputChange("day", e.value);
+                return;
+              }
+              // Jika e adalah ChangeEvent
+              const { value } = e.target;
+              handleInputChange("day", value);
+            },
           },
         ]}
         submitText="Simpan"
