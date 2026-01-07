@@ -11,6 +11,7 @@ import {
   SortingState,
   useReactTable,
 } from "@tanstack/react-table";
+import { BarLoader } from "react-spinners";
 
 // Komponen reusable
 import DataTable from "@/app/components/table/DataTable";
@@ -111,8 +112,17 @@ const MatkulPage = () => {
 
   // ambil data awal
   useEffect(() => {
-    fetchDosen();
-    fetchMatkul();
+    const fetchAll = async () => {
+      try {
+        await fetchDosen();
+        await fetchMatkul();
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchAll();
   }, []);
 
   const fetchDosen = async () => {
@@ -150,7 +160,7 @@ const MatkulPage = () => {
     setIsEditModalOpen(false);
     setSelectedMatkul({});
   };
-
+  
   const handleNewMatkulChange = (name: string, value: string) => {
     setNewMatkul((prev) => ({ ...prev, [name]: value }));
   };
@@ -388,23 +398,27 @@ const MatkulPage = () => {
                     />
                   </div>
                 </div>
-                <div className="table-responsive">
-                  {/* Toolbar (Search + Page Size) */}
-                  <TableToolbar
-                    globalFilter={globalFilter}
-                    setGlobalFilter={setGlobalFilter}
-                    pageSize={pagination.pageSize}
-                    setPageSize={(size) =>
-                      setPagination((old) => ({ ...old, pageSize: size }))
-                    }
-                  />
-
-                  {/* Tabel */}
-                  <DataTable table={table} />
-
-                  {/* Pagination */}
-                  <TablePagination table={table} />
-                </div>
+                {loading ? (
+                  <div
+                    className="d-flex align-items-center justify-content-center"
+                    style={{ minHeight: "300px" }}
+                  >
+                    <BarLoader color="#6777ef" />
+                  </div>
+                ) : (
+                  <>
+                    <TableToolbar
+                      globalFilter={globalFilter}
+                      setGlobalFilter={setGlobalFilter}
+                      pageSize={pagination.pageSize}
+                      setPageSize={(size) =>
+                        setPagination((old) => ({ ...old, pageSize: size }))
+                      }
+                    />
+                    <DataTable table={table} />
+                    <TablePagination table={table} />
+                  </>
+                )}
               </div>
             </div>
           </div>
@@ -487,94 +501,6 @@ const MatkulPage = () => {
         submitText="Simpan"
         cancelText="Batal"
       />
-
-      {/* {isEditModalOpen && (
-        <div
-          className="modal fade show"
-          style={{ display: "block", backgroundColor: "rgba(0,0,0,0.5)" }}
-        >
-          <div className="modal-dialog">
-            <div className="modal-content">
-              <form onSubmit={handleSave}>
-                <div className="modal-header">
-                  <h5 className="modal-title">Edit Mata Kuliah</h5>
-                  <button
-                    type="button"
-                    className="close"
-                    onClick={closeEditModal}
-                  >
-                    <span>&times;</span>
-                  </button>
-                </div>
-                <div className="modal-body">
-                  <div className="form-group">
-                    <label>Dosen</label>
-                    <select
-                      className="form-control"
-                      name="lectureId"
-                      value={selectedMatkul.lectureId}
-                      onChange={handleInputChange}
-                      required
-                    >
-                      <option value="">-- Pilih Dosen --</option>
-                      {dosenList.map((f) => (
-                        <option key={f.id} value={f.id}>
-                          {f.name} ({f.major.name}) ({f.major.faculty.name})
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="form-group">
-                    <label>Kode Mata Kuliah</label>
-                    <input
-                      type="text"
-                      name="code"
-                      className="form-control"
-                      value={selectedMatkul.code}
-                      onChange={handleInputChange}
-                      required
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label>Nama Mata Kuliah</label>
-                    <input
-                      type="text"
-                      name="name"
-                      className="form-control"
-                      value={selectedMatkul.name}
-                      onChange={handleInputChange}
-                      required
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label>Credits</label>
-                    <input
-                      type="number"
-                      name="credits"
-                      className="form-control"
-                      value={selectedMatkul.credits}
-                      onChange={handleInputChange}
-                      required
-                    />
-                  </div>
-                </div>
-                <div className="modal-footer">
-                  <button
-                    type="button"
-                    className="btn btn-secondary btn-danger"
-                    onClick={closeEditModal}
-                  >
-                    Batal
-                  </button>
-                  <button type="submit" className="btn btn-primary">
-                    Simpan
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        </div>
-      )} */}
     </section>
   );
 };

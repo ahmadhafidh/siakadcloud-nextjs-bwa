@@ -12,6 +12,7 @@ import {
   SortingState,
   useReactTable,
 } from "@tanstack/react-table";
+import { BarLoader } from "react-spinners";
 
 // Komponen reusable
 import DataTable from "@/app/components/table/DataTable";
@@ -79,7 +80,16 @@ const JadwalPage = () => {
 
   // ambil data awal
   useEffect(() => {
-    fetchTimeLine();
+    const fetchAll = async () => {
+      try {
+        await fetchTimeLine();
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchAll();
   }, []);
 
   const fetchTimeLine = async () => {
@@ -147,13 +157,13 @@ const JadwalPage = () => {
     return new Date(isoString).toISOString().slice(0, 10); // ambil YYYY-MM-DD
   }
 
-  // function formatForDatetimeLocal(isoString?: string) {
-  //   if (!isoString) return "";
-  //   const date = new Date(isoString);
-  //   const offset = date.getTimezoneOffset(); // selisih menit
-  //   const local = new Date(date.getTime() - offset * 60000);
-  //   return local.toISOString().slice(0, 16); // "YYYY-MM-DDTHH:mm"
-  // }
+  function formatForDatetimeLocal(isoString?: string) {
+    if (!isoString) return "";
+    const date = new Date(isoString);
+    const offset = date.getTimezoneOffset(); // selisih menit
+    const local = new Date(date.getTime() - offset * 60000);
+    return local.toISOString().slice(0, 16); // "YYYY-MM-DDTHH:mm"
+  }
 
   function toISOStringWithTZ(value: string | undefined) {
     if (!value) return undefined;
@@ -337,23 +347,27 @@ const JadwalPage = () => {
                       />
                     </div>
                   </div>
-                  <div className="table-responsive">
-                    {/* Toolbar (Search + Page Size) */}
-                    <TableToolbar
-                      globalFilter={globalFilter}
-                      setGlobalFilter={setGlobalFilter}
-                      pageSize={pagination.pageSize}
-                      setPageSize={(size) =>
-                        setPagination((old) => ({ ...old, pageSize: size }))
-                      }
-                    />
-
-                    {/* Tabel */}
-                    <DataTable table={table} />
-
-                    {/* Pagination */}
-                    <TablePagination table={table} />
-                  </div>
+                  {loading ? (
+                    <div
+                      className="d-flex align-items-center justify-content-center"
+                      style={{ minHeight: "300px" }}
+                    >
+                      <BarLoader color="#6777ef" />
+                    </div>
+                  ) : (
+                    <>
+                      <TableToolbar
+                        globalFilter={globalFilter}
+                        setGlobalFilter={setGlobalFilter}
+                        pageSize={pagination.pageSize}
+                        setPageSize={(size) =>
+                          setPagination((old) => ({ ...old, pageSize: size }))
+                        }
+                      />
+                      <DataTable table={table} />
+                      <TablePagination table={table} />
+                    </>
+                  )}
                 </div>
               </div>
             </div>

@@ -1,6 +1,5 @@
 "use client";
 import React from "react";
-import MyBarChart from "../../../components/myBarChart";
 import api from "@/app/lib/axiosInstance";
 import { useState, useEffect, useMemo } from "react";
 import {
@@ -12,6 +11,7 @@ import {
   SortingState,
   useReactTable,
 } from "@tanstack/react-table";
+import { BarLoader } from "react-spinners";
 
 // Komponen reusable
 import DataTable from "@/app/components/table/DataTable";
@@ -69,7 +69,16 @@ const GolUKTPage = () => {
 
   // ambil data awal
   useEffect(() => {
-    fetchGolUkt();
+    const fetchAll = async () => {
+      try {
+        await fetchGolUkt();
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchAll();
   }, []);
 
   const fetchGolUkt = async () => {
@@ -326,23 +335,27 @@ const GolUKTPage = () => {
                       />
                     </div>
                   </div>
-                  <div className="table-responsive">
-                    {/* Toolbar (Search + Page Size) */}
-                    <TableToolbar
-                      globalFilter={globalFilter}
-                      setGlobalFilter={setGlobalFilter}
-                      pageSize={pagination.pageSize}
-                      setPageSize={(size) =>
-                        setPagination((old) => ({ ...old, pageSize: size }))
-                      }
-                    />
-
-                    {/* Tabel */}
-                    <DataTable table={table} />
-
-                    {/* Pagination */}
-                    <TablePagination table={table} />
-                  </div>
+                  {loading ? (
+                    <div
+                      className="d-flex align-items-center justify-content-center"
+                      style={{ minHeight: "300px" }}
+                    >
+                      <BarLoader color="#6777ef" />
+                    </div>
+                  ) : (
+                    <>
+                      <TableToolbar
+                        globalFilter={globalFilter}
+                        setGlobalFilter={setGlobalFilter}
+                        pageSize={pagination.pageSize}
+                        setPageSize={(size) =>
+                          setPagination((old) => ({ ...old, pageSize: size }))
+                        }
+                      />
+                      <DataTable table={table} />
+                      <TablePagination table={table} />
+                    </>
+                  )}
                 </div>
               </div>
             </div>

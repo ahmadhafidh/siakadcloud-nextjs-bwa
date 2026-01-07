@@ -11,6 +11,7 @@ import {
   SortingState,
   useReactTable,
 } from "@tanstack/react-table";
+import { BarLoader } from "react-spinners";
 
 // Komponen reusable
 import DataTable from "@/app/components/table/DataTable";
@@ -116,9 +117,18 @@ const UKTPage = () => {
 
   // ambil data awal
   useEffect(() => {
-    fetchMahasiswa();
-    fetchProdi();
-    fetchUkt();
+    const fetchAll = async () => {
+      try {
+        await fetchMahasiswa();
+        await fetchProdi();
+        await fetchUkt();
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchAll();
   }, []);
 
   const fetchMahasiswa = async () => {
@@ -171,7 +181,7 @@ const UKTPage = () => {
     setIsEditModalOpen(false);
     setSelectedUkt({});
   };
-  
+
   // versi baru: menerima nama field + value
   const handleNewUktChange = (name: string, value: string) => {
     setNewUkt((prev) => ({ ...prev, [name]: value }));
@@ -389,23 +399,27 @@ const UKTPage = () => {
                       />
                     </div>
                   </div>
-                  <div className="table-responsive">
-                    {/* Toolbar (Search + Page Size) */}
-                    <TableToolbar
-                      globalFilter={globalFilter}
-                      setGlobalFilter={setGlobalFilter}
-                      pageSize={pagination.pageSize}
-                      setPageSize={(size) =>
-                        setPagination((old) => ({ ...old, pageSize: size }))
-                      }
-                    />
-
-                    {/* Tabel */}
-                    <DataTable table={table} />
-
-                    {/* Pagination */}
-                    <TablePagination table={table} />
-                  </div>
+                  {loading ? (
+                    <div
+                      className="d-flex align-items-center justify-content-center"
+                      style={{ minHeight: "300px" }}
+                    >
+                      <BarLoader color="#6777ef" />
+                    </div>
+                  ) : (
+                    <>
+                      <TableToolbar
+                        globalFilter={globalFilter}
+                        setGlobalFilter={setGlobalFilter}
+                        pageSize={pagination.pageSize}
+                        setPageSize={(size) =>
+                          setPagination((old) => ({ ...old, pageSize: size }))
+                        }
+                      />
+                      <DataTable table={table} />
+                      <TablePagination table={table} />
+                    </>
+                  )}
                 </div>
               </div>
             </div>
