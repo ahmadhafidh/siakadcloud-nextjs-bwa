@@ -11,7 +11,6 @@ export default function LoginPage() {
     const [name, setName] = useState("")
     const [email, setEmail] = useState("")
     const [password, setPassword] = useState("")
-    const [role, setRole] = useState("")
 
     const handleRegister = async (e:React.FormEvent) => {
         e.preventDefault();
@@ -22,7 +21,7 @@ export default function LoginPage() {
         }
 
         try {
-            const res = await api.post("authsiakad/register", {
+            await api.post("authsiakad/register", {
                 name, 
                 email,
                 password,

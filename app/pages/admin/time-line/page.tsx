@@ -1,8 +1,8 @@
 "use client";
 import React, { useState, useEffect, useMemo } from "react";
-import MyBarChart from "../../../components/myBarChart";
+
 import api from "@/app/lib/axiosInstance";
-import { time } from "console";
+
 import {
   ColumnDef,
   getCoreRowModel,
@@ -147,13 +147,13 @@ const JadwalPage = () => {
     return new Date(isoString).toISOString().slice(0, 10); // ambil YYYY-MM-DD
   }
 
-  function formatForDatetimeLocal(isoString?: string) {
-    if (!isoString) return "";
-    const date = new Date(isoString);
-    const offset = date.getTimezoneOffset(); // selisih menit
-    const local = new Date(date.getTime() - offset * 60000);
-    return local.toISOString().slice(0, 16); // "YYYY-MM-DDTHH:mm"
-  }
+  // function formatForDatetimeLocal(isoString?: string) {
+  //   if (!isoString) return "";
+  //   const date = new Date(isoString);
+  //   const offset = date.getTimezoneOffset(); // selisih menit
+  //   const local = new Date(date.getTime() - offset * 60000);
+  //   return local.toISOString().slice(0, 16); // "YYYY-MM-DDTHH:mm"
+  // }
 
   function toISOStringWithTZ(value: string | undefined) {
     if (!value) return undefined;

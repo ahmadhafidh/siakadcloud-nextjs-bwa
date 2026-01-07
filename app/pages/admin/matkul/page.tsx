@@ -1,6 +1,5 @@
 "use client";
 import React from "react";
-import MyBarChart from "../../../components/myBarChart";
 import api from "@/app/lib/axiosInstance";
 import { useEffect, useState, useMemo } from "react";
 import {
@@ -150,13 +149,6 @@ const MatkulPage = () => {
   const closeEditModal = () => {
     setIsEditModalOpen(false);
     setSelectedMatkul({});
-  };
-
-  const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
-  ) => {
-    const { name, value } = e.target;
-    setSelectedMatkul((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleNewMatkulChange = (name: string, value: string) => {

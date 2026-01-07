@@ -1,6 +1,5 @@
 
 import React from 'react';
-import MyBarChart from '../../../components/myBarChart';
 
 const DashboardPage = () => {
   return (

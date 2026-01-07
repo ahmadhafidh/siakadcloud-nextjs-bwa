@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useEffect, useMemo } from "react";
-import MyBarChart from "../../../components/myBarChart";
+
 import api from "@/app/lib/axiosInstance";
 import {
   ColumnDef,
@@ -192,7 +192,7 @@ const JadwalPage = () => {
 
   const handleInputChange = (field: string, value: string | number) => {
     setSelectedJadwal((prev) => {
-      let updated = { ...prev, [field]: value };
+      const updated = { ...prev, [field]: value };
       console.log(updated);
       // Kalau timeStart berubah → otomatis set day
       if (field === "timeStart") {
@@ -660,115 +660,6 @@ const JadwalPage = () => {
         submitText="Simpan"
         cancelText="Batal"
       />
-
-      {/* {isEditModalOpen && (
-        <div
-          className="modal fade show"
-          style={{ display: "block", backgroundColor: "rgba(0,0,0,0.5)" }}
-        >
-          <div className="modal-dialog">
-            <div className="modal-content">
-              <form onSubmit={handleSave}>
-                <div className="modal-header">
-                  <h5 className="modal-title">Edit Jadwal</h5>
-                  <button
-                    type="button"
-                    className="close"
-                    onClick={closeEditModal}
-                  >
-                    <span>&times;</span>
-                  </button>
-                </div>
-                <div className="modal-body">
-                  <div className="form-group">
-                    <label htmlFor="fakultas">Kelas</label>
-                    <select
-                      className="form-control"
-                      name="classId"
-                      value={selectedJadwal.classId}
-                      onChange={handleInputChange}
-                      required
-                    >
-                      <option>-- Pilih Kelas --</option>
-                      {kelasList.map((f) => (
-                        <option key={f.id} value={f.id}>
-                          {f.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="form-group">
-                    <label htmlFor="prodi">Mata Kuliah</label>
-                    <select
-                      className="form-control"
-                      name="courseId"
-                      value={selectedJadwal.courseId} // pakai newProdi
-                      onChange={handleInputChange}
-                      required
-                    >
-                      <option>-- Pilih Mata Kuliah --</option>
-                      {matkulList.map((f) => (
-                        <option key={f.id} value={f.id}>
-                          {f.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="form-group">
-                    <label>Tanggal dan Jam Mulai</label>
-                    <input
-                      type="datetime-local"
-                      className="form-control"
-                      name="timeStart"
-                      value={formatForDatetimeLocal(
-                        selectedJadwal.timeStart ?? ""
-                      )}
-                      onChange={handleInputChange}
-                      required
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label>Tanggal dan Jam Berakhir</label>
-                    <input
-                      type="datetime-local"
-                      className="form-control"
-                      name="timeEnd"
-                      value={formatForDatetimeLocal(
-                        selectedJadwal.timeEnd ?? ""
-                      )}
-                      onChange={handleInputChange}
-                      required
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label>Hari</label>
-                    <input
-                      type="text"
-                      className="form-control"
-                      name="day"
-                      value={selectedJadwal.day} // pakai newProdi
-                      onChange={handleInputChange}
-                      readOnly
-                    />
-                  </div>
-                </div>
-                <div className="modal-footer">
-                  <button
-                    type="button"
-                    className="btn btn-secondary btn-danger"
-                    onClick={closeEditModal}
-                  >
-                    Batal
-                  </button>
-                  <button type="submit" className="btn btn-primary">
-                    Simpan
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        </div>
-      )} */}
     </>
   );
 };

@@ -1,6 +1,5 @@
 "use client";
 import React from "react";
-import MyBarChart from "../../../components/myBarChart";
 import api from "@/app/lib/axiosInstance";
 import { useState, useEffect, useMemo } from "react";
 import {
@@ -19,7 +18,7 @@ import TableToolbar from "@/app/components/table/TableToolbar";
 import TablePagination from "@/app/components/table/TablePagination";
 import ModalEditForm from "@/app/components/form/EditForm";
 import AddForm from "@/app/components/form/AddForm";
-import FakultasPage from "../fakultas/page";
+// import FakultasPage from "../fakultas/page";
 
 interface Mahasiswa {
   id: string;
@@ -172,14 +171,7 @@ const UKTPage = () => {
     setIsEditModalOpen(false);
     setSelectedUkt({});
   };
-
-  const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
-  ) => {
-    const { name, value } = e.target;
-    setSelectedUkt((prev) => ({ ...prev, [name]: value }));
-  };
-
+  
   // versi baru: menerima nama field + value
   const handleNewUktChange = (name: string, value: string) => {
     setNewUkt((prev) => ({ ...prev, [name]: value }));

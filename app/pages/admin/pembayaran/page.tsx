@@ -68,10 +68,10 @@ const updatePembayaran = async (
 // };
 
 const PembayaranPage = () => {
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [selectedPembayaran, setSelectedPembayaran] = useState<
-    Partial<Pembayaran>
-  >({});
+  // const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  // const [selectedPembayaran, setSelectedPembayaran] = useState<
+  //   Partial<Pembayaran>
+  // >({});
   const [newPembayaran, setNewPembayaran] = useState({
     studentId: "",
     code: "",

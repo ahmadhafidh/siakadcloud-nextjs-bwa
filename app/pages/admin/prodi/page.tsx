@@ -132,14 +132,7 @@ const ProdiPage = () => {
     setIsEditModalOpen(false);
     setSelectedProdi({});
   };
-
-  const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
-  ) => {
-    const { name, value } = e.target;
-    setSelectedProdi((prev) => ({ ...prev, [name]: value }));
-  };
-
+  
   const handleNewProdiChange = (name: string, value: string | boolean) => {
     setNewProdi((prev) => ({
       ...prev,
