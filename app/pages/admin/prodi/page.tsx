@@ -10,6 +10,7 @@ import {
   SortingState,
   useReactTable,
 } from "@tanstack/react-table";
+import { BarLoader } from "react-spinners";
 
 // Komponen reusable
 import DataTable from "@/app/components/table/DataTable";
@@ -91,19 +92,26 @@ const ProdiPage = () => {
 
   // ambil data awal
   useEffect(() => {
-    fetchProdi();
-    fetchFakultas();
+    const fetchAll = async () => {
+      try {
+        await fetchFakultas();
+        await fetchProdi();
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchAll();
   }, []);
 
   const fetchFakultas = async () => {
     try {
-      setLoading(true);
       const data = await getFakultas();
       const sortedData = data.sort((a: Fakultas, b: Fakultas) =>
         a.name.localeCompare(b.name, "id", { sensitivity: "base" })
       );
       setFakultasList(sortedData);
-      setLoading(false);
     } catch (err) {
       console.error("Gagal fetch fakultas:", err);
     }
@@ -111,13 +119,11 @@ const ProdiPage = () => {
 
   const fetchProdi = async () => {
     try {
-      setLoading(true);
       const data = await getProdi();
       const sortedData = data.sort((a: Prodi, b: Prodi) =>
         a.name.localeCompare(b.name, "id", { sensitivity: "base" })
       );
       setProdiList(sortedData);
-      setLoading(false);
     } catch (err) {
       console.error("Gagal fetch prodi:", err);
     }
@@ -132,7 +138,14 @@ const ProdiPage = () => {
     setIsEditModalOpen(false);
     setSelectedProdi({});
   };
-  
+
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
+    const { name, value } = e.target;
+    setSelectedProdi((prev) => ({ ...prev, [name]: value }));
+  };
+
   const handleNewProdiChange = (name: string, value: string | boolean) => {
     setNewProdi((prev) => ({
       ...prev,
@@ -347,22 +360,27 @@ const ProdiPage = () => {
                       />
                     </div>
                   </div>
-
-                  {/* Toolbar (Search + Page Size) */}
-                  <TableToolbar
-                    globalFilter={globalFilter}
-                    setGlobalFilter={setGlobalFilter}
-                    pageSize={pagination.pageSize}
-                    setPageSize={(size) =>
-                      setPagination((old) => ({ ...old, pageSize: size }))
-                    }
-                  />
-
-                  {/* Tabel */}
-                  <DataTable table={table} />
-
-                  {/* Pagination */}
-                  <TablePagination table={table} />
+                  {loading ? (
+                    <div
+                      className="d-flex align-items-center justify-content-center"
+                      style={{ minHeight: "300px" }}
+                    >
+                      <BarLoader color="#6777ef" />
+                    </div>
+                  ) : (
+                    <>
+                      <TableToolbar
+                        globalFilter={globalFilter}
+                        setGlobalFilter={setGlobalFilter}
+                        pageSize={pagination.pageSize}
+                        setPageSize={(size) =>
+                          setPagination((old) => ({ ...old, pageSize: size }))
+                        }
+                      />
+                      <DataTable table={table} />
+                      <TablePagination table={table} />
+                    </>
+                  )}
                 </div>
               </div>
             </div>

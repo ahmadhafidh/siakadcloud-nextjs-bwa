@@ -11,6 +11,7 @@ import {
   SortingState,
   useReactTable,
 } from "@tanstack/react-table";
+import { BarLoader } from "react-spinners";
 
 // Komponen reusable
 import DataTable from "@/app/components/table/DataTable";
@@ -18,7 +19,7 @@ import TableToolbar from "@/app/components/table/TableToolbar";
 import TablePagination from "@/app/components/table/TablePagination";
 
 interface TahunAjaran {
-  id?: number; // bisa undefined saat baru ditambahkan
+  id?: string; // bisa undefined saat baru ditambahkan
   name: string;
   dateStart: string;
   dateEnd: string;
@@ -63,7 +64,7 @@ const TahunAjaranPage = () => {
     e.preventDefault();
 
     // Tambahkan sementara di UI dengan temporary id
-    const tempId = Date.now();
+    const tempId = Date.now().toString();
     const tempItem = {
       ...newTahun,
       id: tempId,
@@ -91,7 +92,11 @@ const TahunAjaranPage = () => {
   };
 
   const handleEdit = (item: TahunAjaran) => {
-    setSelectedEdit(item);
+    setSelectedEdit({
+      ...item,
+      dateStart: formatDateForInput(item.dateStart),
+      dateEnd: formatDateForInput(item.dateEnd),
+    });
     setShowEditModal(true);
   };
 
@@ -111,7 +116,7 @@ const TahunAjaranPage = () => {
     }
   };
 
-  const handleDelete = async (id?: number) => {
+  const handleDelete = async (id: string) => {
     if (!id) return;
     if (!confirm("Yakin hapus Tahun Ajaran ini?")) return;
 
@@ -123,8 +128,27 @@ const TahunAjaranPage = () => {
     }
   };
 
+  const formatDateForInput = (dateStr?: string) => {
+    if (!dateStr) return "";
+    const date = new Date(dateStr);
+    const yyyy = date.getFullYear();
+    const mm = String(date.getMonth() + 1).padStart(2, "0");
+    const dd = String(date.getDate()).padStart(2, "0");
+    return `${yyyy}-${mm}-${dd}`;
+  };
+
+  // ambil data awal
   useEffect(() => {
-    fetchData();
+    const fetchAll = async () => {
+      try {
+        await fetchData();
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchAll();
   }, []);
 
   // Columns untuk tabel
@@ -187,7 +211,7 @@ const TahunAjaranPage = () => {
       {
         header: "Aksi",
         cell: ({ row }) => {
-          const prodi = row.original;
+          const tahunAjaran = row.original;
           return (
             <>
               <a
@@ -195,7 +219,7 @@ const TahunAjaranPage = () => {
                 className="btn btn-icon btn-primary m-1"
                 onClick={(e) => {
                   e.preventDefault();
-                  handleEdit(prodi);
+                  handleEdit(tahunAjaran);
                 }}
               >
                 <i className="far fa-edit"></i>
@@ -205,7 +229,7 @@ const TahunAjaranPage = () => {
                 className="btn btn-icon btn-danger"
                 onClick={(e) => {
                   e.preventDefault();
-                  delete prodi.id;
+                  handleDelete(tahunAjaran.id!);
                 }}
               >
                 <i className="fa fa-trash"></i>
@@ -233,234 +257,238 @@ const TahunAjaranPage = () => {
   });
 
   return (
-    <section className="section">
-      <div className="section-header">
-        <h1>Master</h1>
-        <div className="section-header-breadcrumb">
-          <div className="breadcrumb-item">Master</div>
-          <div className="breadcrumb-item">
-            <a href="../master/tahun-ajaran.html">Tahun Ajaran</a>
+    <>
+      <section className="section">
+        <div className="section-header">
+          <h1>Master</h1>
+          <div className="section-header-breadcrumb">
+            <div className="breadcrumb-item">Master</div>
+            <div className="breadcrumb-item">
+              <a href="../master/tahun-ajaran.html">Tahun Ajaran</a>
+            </div>
           </div>
         </div>
-      </div>
 
-      <div className="section-body">
-        <h2 className="section-title">Tahun Ajaran</h2>
-        <p className="section-lead">
-          Menampilkan semua data Tahun Ajaran yang ada pada universitas ini
-        </p>
-        <div className="row">
-          <div className="col-12">
-            <div className="card">
-              <div className="card-body">
-                <button
-                  className="btn btn-primary btn-sm footer-left mb-2"
-                  type="button"
-                  data-toggle="collapse"
-                  data-target="#collapseTambahTahunAjaran"
-                  onClick={() => setShowAddForm(!showAddForm)}
-                >
-                  Tambah Tahun Ajaran
-                </button>
+        <div className="section-body">
+          <h2 className="section-title">Tahun Ajaran</h2>
+          <p className="section-lead">
+            Menampilkan semua data Tahun Ajaran yang ada pada universitas ini
+          </p>
+          <div className="row">
+            <div className="col-12">
+              <div className="card">
+                <div className="card-body">
+                  <button
+                    className="btn btn-primary btn-sm footer-left mb-2"
+                    type="button"
+                    data-toggle="collapse"
+                    data-target="#collapseTambahTahunAjaran"
+                    onClick={() => setShowAddForm(!showAddForm)}
+                  >
+                    Tambah Tahun Ajaran
+                  </button>
 
-                <div className="collapse" id="collapseTambahTahunAjaran">
-                  <div className="card card-body">
-                    <form onSubmit={addTahunAjaran}>
-                      <div className="form-group">
-                        <label>Nama Tahun Ajaran</label>
-                        <input
-                          type="text"
-                          className="form-control"
-                          placeholder="Nama Tahun Ajaran"
-                          value={newTahun.name} // pakai state newTahun
-                          onChange={(e) =>
-                            setNewTahun({ ...newTahun, name: e.target.value })
-                          }
-                          required
-                        />
-                      </div>
-                      <div className="form-group">
-                        <label>Tanggal Dimulai</label>
-                        <input
-                          type="date"
-                          className="form-control"
-                          value={newTahun.dateStart}
-                          onChange={(e) =>
-                            setNewTahun({
-                              ...newTahun,
-                              dateStart: e.target.value,
-                            })
-                          }
-                          required
-                        />
-                      </div>
-                      <div className="form-group">
-                        <label>Tanggal Berakhir</label>
-                        <input
-                          type="date"
-                          className="form-control"
-                          value={newTahun.dateEnd} // pakai state newTahun
-                          onChange={(e) =>
-                            setNewTahun({
-                              ...newTahun,
-                              dateEnd: e.target.value,
-                            })
-                          }
-                          required
-                        />
-                      </div>
-                      <div className="form-group">
-                        <label>Apakah Aktif</label>
-                        <br />
-                        <div className="custom-control custom-switch">
+                  <div className="collapse" id="collapseTambahTahunAjaran">
+                    <div className="card card-body">
+                      <form onSubmit={addTahunAjaran}>
+                        <div className="form-group">
+                          <label>Nama Tahun Ajaran</label>
                           <input
-                            type="checkbox"
-                            className="custom-control-input"
-                            id="isAktif"
-                            name="is_aktif"
-                            checked={newTahun.status}
+                            type="text"
+                            className="form-control"
+                            placeholder="Nama Tahun Ajaran"
+                            value={newTahun.name} // pakai state newTahun
+                            onChange={(e) =>
+                              setNewTahun({ ...newTahun, name: e.target.value })
+                            }
+                            required
+                          />
+                        </div>
+                        <div className="form-group">
+                          <label>Tanggal Dimulai</label>
+                          <input
+                            type="date"
+                            className="form-control"
+                            value={newTahun.dateStart}
                             onChange={(e) =>
                               setNewTahun({
                                 ...newTahun,
-                                status: e.target.checked,
+                                dateStart: e.target.value,
                               })
                             }
+                            required
                           />
-                          <label
-                            className="custom-control-label"
-                            htmlFor="isAktif"
-                          >
-                            Aktif
-                          </label>
                         </div>
-                      </div>
-                      <button type="submit" className="btn btn-primary">
-                        Simpan
-                      </button>
-                    </form>
-                  </div>
-                </div>
-
-                <div className="table-responsive">
-                  {/* Toolbar (Search + Page Size) */}
-                  <TableToolbar
-                    globalFilter={globalFilter}
-                    setGlobalFilter={setGlobalFilter}
-                    pageSize={pagination.pageSize}
-                    setPageSize={(size) =>
-                      setPagination((old) => ({ ...old, pageSize: size }))
-                    }
-                  />
-
-                  {/* Tabel */}
-                  <DataTable table={table} />
-
-                  {/* Pagination */}
-                  <TablePagination table={table} />
-                </div>
-
-                {/* Modal Edit */}
-                {showEditModal && selectedEdit && (
-                  <div
-                    className="modal fade show d-block"
-                    tabIndex={-1}
-                    style={{ backgroundColor: "rgba(0,0,0,0.5)" }}
-                  >
-                    <div className="modal-dialog modal-dialog-centered">
-                      <div className="modal-content">
-                        <form onSubmit={saveEdit}>
-                          <div className="modal-header">
-                            <h5 className="modal-title">Edit Tahun Ajaran</h5>
-                            <button
-                              type="button"
-                              className="close"
-                              onClick={() => setShowEditModal(false)}
+                        <div className="form-group">
+                          <label>Tanggal Berakhir</label>
+                          <input
+                            type="date"
+                            className="form-control"
+                            value={newTahun.dateEnd} // pakai state newTahun
+                            onChange={(e) =>
+                              setNewTahun({
+                                ...newTahun,
+                                dateEnd: e.target.value,
+                              })
+                            }
+                            required
+                          />
+                        </div>
+                        <div className="form-group">
+                          <label>Apakah Aktif</label>
+                          <br />
+                          <div className="custom-control custom-switch">
+                            <input
+                              type="checkbox"
+                              className="custom-control-input"
+                              id="isAktif"
+                              name="is_aktif"
+                              checked={newTahun.status}
+                              onChange={(e) =>
+                                setNewTahun({
+                                  ...newTahun,
+                                  status: e.target.checked,
+                                })
+                              }
+                            />
+                            <label
+                              className="custom-control-label"
+                              htmlFor="isAktif"
                             >
-                              <span>&times;</span>
-                            </button>
+                              Aktif
+                            </label>
                           </div>
-                          <div className="modal-body">
-                            <div className="form-group">
-                              <label>Nama Tahun Ajaran</label>
-                              <input
-                                type="text"
-                                className="form-control"
-                                value={selectedEdit.name}
-                                onChange={(e) =>
-                                  setSelectedEdit({
-                                    ...selectedEdit,
-                                    name: e.target.value,
-                                  })
-                                }
-                                required
-                              />
-                            </div>
-                            <div className="form-group">
-                              <label>Tanggal Dimulai</label>
-                              <input
-                                type="date"
-                                className="form-control"
-                                value={selectedEdit.dateStart}
-                                onChange={(e) =>
-                                  setSelectedEdit({
-                                    ...selectedEdit,
-                                    dateStart: e.target.value,
-                                  })
-                                }
-                              />
-                            </div>
-                            <div className="form-group">
-                              <label>Tanggal Berakhir</label>
-                              <input
-                                type="date"
-                                className="form-control"
-                                value={selectedEdit.dateEnd}
-                                onChange={(e) =>
-                                  setSelectedEdit({
-                                    ...selectedEdit,
-                                    dateEnd: e.target.value,
-                                  })
-                                }
-                              />
-                            </div>
-                            <div className="form-group">
-                              <label>Aktif</label>
-                              <input
-                                type="checkbox"
-                                checked={selectedEdit.status}
-                                onChange={(e) =>
-                                  setSelectedEdit({
-                                    ...selectedEdit,
-                                    status: e.target.checked,
-                                  })
-                                }
-                              />
-                            </div>
-                          </div>
-                          <div className="modal-footer">
-                            <button
-                              type="button"
-                              className="btn btn-secondary"
-                              onClick={() => setShowEditModal(false)}
-                            >
-                              Batal
-                            </button>
-                            <button type="submit" className="btn btn-primary">
-                              Simpan Perubahan
-                            </button>
-                          </div>
-                        </form>
-                      </div>
+                        </div>
+                        <button type="submit" className="btn btn-primary">
+                          Simpan
+                        </button>
+                      </form>
                     </div>
                   </div>
-                )}
-                {/* End Modal */}
+
+                  {loading ? (
+                    <div
+                      className="d-flex align-items-center justify-content-center"
+                      style={{ minHeight: "300px" }}
+                    >
+                      <BarLoader color="#6777ef" />
+                    </div>
+                  ) : (
+                    <>
+                      <TableToolbar
+                        globalFilter={globalFilter}
+                        setGlobalFilter={setGlobalFilter}
+                        pageSize={pagination.pageSize}
+                        setPageSize={(size) =>
+                          setPagination((old) => ({ ...old, pageSize: size }))
+                        }
+                      />
+                      <DataTable table={table} />
+                      <TablePagination table={table} />
+                    </>
+                  )}
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
-    </section>
+      </section>
+      {/* Modal Edit */}
+      {showEditModal && selectedEdit && (
+        <div
+          className="modal fade show d-block"
+          tabIndex={-1}
+          style={{ backgroundColor: "rgba(0,0,0,0.5)" }}
+        >
+          <div className="modal-dialog modal-dialog-centered">
+            <div className="modal-content">
+              <form onSubmit={saveEdit}>
+                <div className="modal-header">
+                  <h5 className="modal-title">Edit Tahun Ajaran</h5>
+                  <button
+                    type="button"
+                    className="close"
+                    onClick={() => setShowEditModal(false)}
+                  >
+                    <span>&times;</span>
+                  </button>
+                </div>
+                <div className="modal-body">
+                  <div className="form-group">
+                    <label>Nama Tahun Ajaran</label>
+                    <input
+                      type="text"
+                      className="form-control"
+                      value={selectedEdit.name}
+                      onChange={(e) =>
+                        setSelectedEdit({
+                          ...selectedEdit,
+                          name: e.target.value,
+                        })
+                      }
+                      required
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Tanggal Dimulai</label>
+                    <input
+                      type="date"
+                      className="form-control"
+                      value={selectedEdit.dateStart}
+                      onChange={(e) =>
+                        setSelectedEdit({
+                          ...selectedEdit,
+                          dateStart: e.target.value,
+                        })
+                      }
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Tanggal Berakhir</label>
+                    <input
+                      type="date"
+                      className="form-control"
+                      value={selectedEdit.dateEnd}
+                      onChange={(e) =>
+                        setSelectedEdit({
+                          ...selectedEdit,
+                          dateEnd: e.target.value,
+                        })
+                      }
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Aktif</label>
+                    <input
+                      type="checkbox"
+                      checked={selectedEdit.status}
+                      onChange={(e) =>
+                        setSelectedEdit({
+                          ...selectedEdit,
+                          status: e.target.checked,
+                        })
+                      }
+                    />
+                  </div>
+                </div>
+                <div className="modal-footer">
+                  <button
+                    type="button"
+                    className="btn btn-danger"
+                    onClick={() => setShowEditModal(false)}
+                  >
+                    Batal
+                  </button>
+                  <button type="submit" className="btn btn-primary">
+                    Simpan Perubahan
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 };
 
