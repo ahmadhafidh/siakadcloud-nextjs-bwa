@@ -3,12 +3,22 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-
+import Cookies from "js-cookie";
+import { useRouter } from "next/navigation";
 const AdminSidebar = () => {
   const pathname = usePathname();
 
   const isActive = (href: string) => {
     return pathname === href;
+  };
+
+  const router = useRouter();
+  const handleLogout = () => {
+    Object.keys(Cookies.get() || {}).forEach((cookieName) => {
+      Cookies.remove(cookieName);
+    });
+
+    router.push("/pages/auth/admin/login");
   };
 
   return (
@@ -128,10 +138,14 @@ const AdminSidebar = () => {
             </Link>
           </li>
           <li>
-            <Link className="nav-link" href="/login">
+            <button
+              type="button"
+              className="dropdown-item has-icon text-danger"
+              onClick={handleLogout}
+            >
               <i className="ion-arrow-return-left"></i>
               <span>Logout</span>
-            </Link>
+            </button>
           </li>
         </ul>
       </aside>

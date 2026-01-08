@@ -1,7 +1,10 @@
-"use client"
+"use client";
+import React, { useState } from "react";
+import { useRouter } from "next/navigation";
+import api from "@/app/lib/axiosInstance";
+import { AxiosError } from "axios";
+import Link from "next/link";
 
-import React, {useState} from 'react'
-import {useRouter} from "next/navigation"
 
 export default function LoginPage() {
     const router = useRouter();
@@ -12,19 +15,47 @@ export default function LoginPage() {
     const [password, setPassword] = useState("")
     const [role] = useState("user")
 
-    const handleSubmit = (e:React.FormEvent) => {
+    const handleRegister = async(e:React.FormEvent) => {
         e.preventDefault();
 
-        if (!name || !email || !password){
+        if (!email || !password){
             alert("Semua field wajib diisi")
             return
         }
 
-        //simulasi kirim data ke backend
-        console.log({name, email, password, role})
+        try {
+            const res = await api.post("/manage-lectures/register", {
+                email,
+                password
+            })
 
-        //redirect ke login
-        router.push("/auth/login")
+            //Hanya masuk sini kalau status 2xx
+            if(res.data.success){
+                alert("Register Berhasil!")
+                router.push("/pages/auth/dosen/login")
+            }else{
+                alert(`Register gagal: ${res.data.message}`);
+            }
+        } catch (err:unknown) {
+            if (err instanceof AxiosError) {
+            // baca pesan error dari server
+            const data = err.response?.data as {
+                success?: boolean;
+                message?: string;
+            };
+
+            if (data?.message === "Password is already set") {
+                alert("Akun sudah terdaftar, silakan login.");
+                router.push("/pages/auth/dosen/login");
+            } else {
+                alert("Gagal Register: " + (data?.message || err.message));
+            }
+            console.error("Gagal Register:", data || err);
+        } else {
+            console.error("Unknown error:", err);
+            alert("Gagal Register: Terjadi kesalahan yang tidak diketahui");
+        }
+       }
     }
     return (
         <section className="section">
@@ -39,13 +70,7 @@ export default function LoginPage() {
                     <div className="card-header"><h4>Register Dosen</h4></div>
 
                     <div className="card-body">
-                        <form onSubmit={handleSubmit}>
-                        <div className="row">
-                            <div className="form-group col-6">
-                                <label htmlFor="name">Name</label>
-                                <input id="name" type="text" className="form-control" name="name" value={name} onChange={(e) => setName(e.target.value)} autoFocus required/>
-                            </div>
-                        </div>
+                        <form onSubmit={handleRegister}>
 
                         <div className="form-group">
                             <label htmlFor="email">Email</label>

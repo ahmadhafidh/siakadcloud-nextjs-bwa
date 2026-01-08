@@ -1,22 +1,36 @@
-"use client"
+"use client";
 
-import React, {useState} from 'react'
-import {useRouter} from "next/navigation"
+import React, { useState } from "react";
+import { useRouter } from "next/navigation";
+import api from "@/app/lib/axiosInstance";
+import Cookies from "js-cookie";
+import Link from "next/link";
 
 export default function LoginPage() {
     const router = useRouter();
     const [email, setEmail] = useState("")
     const [password, setPassword] = useState("")
-    const [remember, setRemember] = useState("")
+    const [remember, setRemember] = useState(false)
 
-    const handleSubmit = (e:React.FormEvent) => {
+    const handleLogin = async (e:React.FormEvent) => {
         e.preventDefault();
-
-        // contoh simulasi login
-        if(email === "admin@example.com" && password === "123456"){
-            router.push("/dashboard"); //redirect to dashboard
-        } else {
-            alert("Email atau password salah")
+        try {
+            const res = await api.post("/manage-lectures/login", {
+                email,
+                password
+            })
+            Cookies.set("token", res.data.data.token, {expires: 1})
+            Cookies.set("email", res.data.data.email, {expires: 1})
+            alert("Login berhasil")
+            router.push("/pages/dosen/dashboard")
+        } catch (err: unknown) {
+            if (err instanceof Error) {
+                console.error(err);
+                alert("Login gagal. Periksa email atau password!");
+            } else {
+                console.error("Unknown error:", err);
+                alert("Login gagal. Terjadi kesalahan yang tidak diketahui.");
+            }
         }
     }
     return (
@@ -25,7 +39,14 @@ export default function LoginPage() {
                 <div className="row">
                     <div className="col-12 col-sm-8 offset-sm-2 col-md-6 offset-md-3 col-lg-6 offset-lg-3 col-xl-4 offset-xl-4">
                         <div className="login-brand">
-                            <img src="/assets/img/stisla-fill.svg" alt="logo" width={100} className="shadow-light rounded-circle" />
+                            <Link href="/pages/auth/dosen/login">
+                                <img
+                                src="/assets/img/stisla-fill.svg"
+                                alt="logo"
+                                width={100}
+                                className="shadow-light rounded-circle"
+                                />
+                            </Link>
                         </div>
 
                         <div className="card card-primary">
@@ -33,7 +54,7 @@ export default function LoginPage() {
 
                             <div className="card-body">
                                 <form 
-                                    onSubmit={handleSubmit}
+                                    onSubmit={handleLogin}
                                     className="needs-validation" 
                                     noValidate
                                 >
@@ -101,7 +122,7 @@ export default function LoginPage() {
                             </div>
                         </div>
                         <div className="mt-5 text-muted text-center">
-                            Don't have an account? <a href="/auth/register">Create One</a>
+                             Don&apos;t have an account? <a href="/auth/register">Create One</a>
                         </div>
                         <div className="simple-footer">
                         Copyright &copy; Stisla 2018

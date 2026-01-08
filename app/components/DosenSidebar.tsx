@@ -3,6 +3,8 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import Cookies from "js-cookie";
+import { useRouter } from "next/navigation";
 
 const DosenSidebar = () => {
   const pathname = usePathname();
@@ -19,6 +21,14 @@ const DosenSidebar = () => {
     );
   };
 
+  const router = useRouter();
+  const handleLogout = () => {
+    Object.keys(Cookies.get() || {}).forEach((cookieName) => {
+      Cookies.remove(cookieName);
+    });
+
+    router.push("/pages/auth/dosen/login");
+  };
 
   return (
     <div className="main-sidebar sidebar-style-2">
@@ -56,10 +66,14 @@ const DosenSidebar = () => {
           </li>
           <li className="menu-header">Lainnya</li>
           <li>
-            <Link className="nav-link" href="/login">
+            <button
+              type="button"
+              className="dropdown-item has-icon text-danger"
+              onClick={handleLogout}
+            >
               <i className="ion-arrow-return-left"></i>
               <span>Logout</span>
-            </Link>
+            </button>
           </li>
         </ul>
       </aside>

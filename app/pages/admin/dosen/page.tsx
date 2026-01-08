@@ -19,7 +19,6 @@ import { AxiosError } from "axios";
 import DataTable from "@/app/components/table/DataTable";
 import TableToolbar from "@/app/components/table/TableToolbar";
 import TablePagination from "@/app/components/table/TablePagination";
-import PasswordStatus from "@/app/components/PasswordStatus";
 
 interface Fakultas {
   id: string;
@@ -43,7 +42,6 @@ interface Dosen {
   name: string;
   email: string;
   lectureNumber: number;
-  password: string;
   position: string;
   majorId: string;
   major?: Prodi & { faculty?: Fakultas };
@@ -260,20 +258,7 @@ const DosenPage = () => {
         accessorFn: (row, index) => index + 1,
         header: "#",
       },
-      {
-        accessorKey: "name",
-        header: "Name",
-        cell: ({ row }) => {
-          const hasNoPassword = row.original.password === null;
-
-          return (
-            <div className="d-flex align-items-center">
-              <PasswordStatus status={hasNoPassword ? "inactive" : "active"} />
-              <span className="m-2">{row.original.name}</span>
-            </div>
-          );
-        },
-      },
+      { accessorKey: "name", header: "Name" },
       { accessorKey: "email", header: "Email" },
       { accessorFn: (row) => row.major?.faculty?.name, header: "Fakultas" },
       { accessorFn: (row) => row.major?.name, header: "Program Studi" },
