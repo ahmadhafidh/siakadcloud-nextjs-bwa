@@ -1,70 +1,292 @@
-import React from 'react';
+"use client";
+import React, { useState, useEffect, useMemo } from "react";
+import api from "@/app/lib/axiosInstance";
+import {
+  ColumnDef,
+  getCoreRowModel,
+  getFilteredRowModel,
+  getPaginationRowModel,
+  getSortedRowModel,
+  SortingState,
+  useReactTable,
+} from "@tanstack/react-table";
+import { BarLoader } from "react-spinners";
 
-const KRSDashboard = () => {
+// Komponen reusable
+import DataTable from "@/app/components/table/DataTable";
+import TableToolbar from "@/app/components/table/TableToolbar";
+import TablePagination from "@/app/components/table/TablePagination";
+import { DetailModal, renderTableKrs } from "@/app/components/form/DetailForm";
+
+interface Krs {
+  id: string;
+  name: string;
+  studentNumber: string;
+  studentYearName: string;
+  status: string;
+  createdAt: string;
+  courses: Matkul[];
+}
+
+interface Matkul {
+  id: string;
+  courseName: string;
+  courseCode: string;
+  credits: string;
+  lectureName: string;
+}
+
+// API Services
+const getKrs = async () => {
+  const res = await api.get("/manage-lectures/study-plans");
+  return res.data.data;
+};
+
+const updateStatus = async (
+  id: string,
+  data: {
+    status: string;
+  }
+) => {
+  const res = await api.put(`/manage-lectures/study-plans/${id}`, data);
+  return res.data;
+};
+
+const KRSPage = () => {
+  const [loading, setLoading] = useState(true);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [krsList, setKrsList] = useState<Krs[]>([]);
+  const [selectedKrs, setSelectedKrs] = useState<Partial<Krs>>({});
+
+  // State untuk search, sorting, pagination
+  const [globalFilter, setGlobalFilter] = useState("");
+  const [sorting, setSorting] = useState<SortingState>([
+    { id: "name", desc: false },
+  ]);
+  const [pagination, setPagination] = useState({
+    pageIndex: 0,
+    pageSize: 10,
+  });
+
+  // ambil data awal
+  useEffect(() => {
+    const fetchAll = async () => {
+      try {
+        await fetchKrs();
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchAll();
+  }, []);
+
+  const fetchKrs = async () => {
+    try {
+      const data = await getKrs();
+
+      // mapping supaya sesuai interface Krs
+      const mappedData: Krs[] = data.map((item: any) => ({
+        id: item.studyPlan.id,
+        name: item.studyPlan.name,
+        studentNumber: item.studyPlan.studentNumber,
+        studentYearName: item.studyPlan.yearName,
+        status: item.studyPlan.status,
+        createdAt: item.studyPlan.createdAt,
+        courses: item.courses.map((c: any) => ({
+          id: c.id,
+          courseName: c.name,
+          courseCode: c.code,
+          credits: String(c.credits), // interface Matkul pakai string
+          lectureName: c.lectureName,
+        })),
+      }));
+
+      setKrsList(mappedData);
+    } catch (err) {
+      console.error("Gagal fetch krs:", err);
+    }
+  };
+
+  const handleToggleStatus = async (krs: Krs) => {
+    try {
+      const newStatus = krs.status === "ACCEPTED" ? "REJECTED" : "ACCEPTED";
+
+      const updated = await updateStatus(krs.id, {
+        status: newStatus,
+      });
+
+      setKrsList((prev) =>
+        prev.map((p) => (p.id === updated.id ? updated : p))
+      );
+      fetchKrs();
+    } catch (err) {
+      console.error("Gagal toggle status pembayaran:", err);
+    }
+  };
+
+  const openDetailModal = (krs: Krs) => {
+    setSelectedKrs(krs);
+    setIsDetailModalOpen(true);
+  };
+
+  const closeDetailModal = () => {
+    setIsDetailModalOpen(false);
+    setSelectedKrs({});
+  };
+
+  // Columns untuk tabel
+  const columns = useMemo<ColumnDef<Krs>[]>(
+    () => [
+      {
+        accessorFn: (row, index) => index + 1,
+        header: "#",
+      },
+      { accessorKey: "name", header: "Name" },
+      { accessorKey: "studentNumber", header: "NIM" },
+      { accessorKey: "studentYearName", header: "Tahun Ajaran" },
+      {
+        accessorKey: "status", // atau accessorFn: row => row.status
+        header: "Status",
+        cell: ({ row }) => {
+          const status = row.original?.status?.toLowerCase();
+          const badgeClass =
+            status === "accepted"
+              ? "badge-success"
+              : status === "process"
+              ? "badge-warning"
+              : status === "rejected"
+              ? "badge-danger"
+              : "badge-secondary";
+              
+
+          return (
+            <span className={`badge ${badgeClass}`} style={{ width:"100px" }}>{row.original.status}</span>
+          );
+        },
+      },
+      {
+        accessorKey: "createdAt",
+        header: "Dibuat pada",
+        cell: (info) =>
+          new Date(info.getValue() as string).toLocaleDateString("id-ID", {
+            weekday: "long",
+            day: "2-digit",
+            month: "long",
+            year: "numeric",
+          }),
+      },
+      {
+        header: "Aksi",
+        cell: ({ row }) => {
+          const aksi = row.original;
+          return (
+            <>
+              <button
+                onClick={(e) => {
+                  e.preventDefault();
+                  handleToggleStatus(aksi);
+                }}
+                className={`btn btn-sm mx-1 ${
+                  aksi.status === "REJECTED" ? "btn-success" : "btn-danger"
+                }`}
+                style={{ width: "80px" }}
+              >
+                {aksi.status === "REJECTED" ? "ACCEPT" : "REJECT"}
+              </button>
+            </>
+          );
+        },
+      },
+      {
+        header: "Detail",
+        cell: ({ row }) => {
+          const prodi = row.original;
+          return (
+            <>
+              <a
+                href="#"
+                className="btn btn-icon btn-primary m-1"
+                onClick={(e) => {
+                  e.preventDefault();
+                  openDetailModal(prodi);
+                }}
+              >
+                <i className="far fa-eye"></i>
+              </a>
+            </>
+          );
+        },
+      },
+    ],
+    []
+  );
+
+  // Inisialisasi react-table
+  const table = useReactTable({
+    data: krsList,
+    columns,
+    state: { pagination, globalFilter, sorting },
+    getCoreRowModel: getCoreRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+    onSortingChange: setSorting,
+    onPaginationChange: setPagination,
+    onGlobalFilterChange: setGlobalFilter,
+  });
+
   return (
-    <section className="section">
-      <div className="section-header">
-        <h1>Kartu Rencana Studi</h1>
-      </div>
+    <>
+      <section className="section">
+        <div className="section-header">
+          <h1>Kartu Rencana Studi</h1>
+        </div>
 
-      <div className="section-body">
-        <div className="row">
-          <div className="col-12">
-            <div className="card">
-              <div className="card-body">
-                <div className="table-responsive">
-                  <table className="table table-striped" id="table-1">
-                    <thead>
-                      <tr>
-                        <th>#</th>
-                        <th>Nama</th>
-                        <th>NIM</th>
-                        <th>Tahun Ajaran</th>
-                        <th>Status</th>
-                        <th>Dibuat pada</th>
-                        <th>Aksi</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr>
-                        <td>1</td>
-                        <td>Ujang Maman</td>
-                        <td>1234567890</td>
-                        <td>2025/2026</td>
-                        <td>
-                          <span className="badge badge-success">Disetujui</span>
-                        </td>
-                        <td>2024-08-01</td>
-                        <td>
-                          <a
-                            href="#"
-                            className="btn btn-icon btn-warning"
-                            id="modal-1"
-                            title="Detail KRS"
-                          >
-                            <i className="fa fa-eye"></i>
-                          </a>
-                          <a
-                            href="#"
-                            className="btn btn-icon btn-primary"
-                            id="btn-approve-krs"
-                            title="Edit KRS"
-                          >
-                            <i className="far fa-edit"></i>
-                          </a>
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
+        <div className="section-body">
+          <div className="row">
+            <div className="col-12">
+              <div className="card">
+                <div className="card-body">
+                  {loading ? (
+                    <div
+                      className="d-flex align-items-center justify-content-center"
+                      style={{ minHeight: "300px" }}
+                    >
+                      <BarLoader color="#6777ef" />
+                    </div>
+                  ) : (
+                    <>
+                      <TableToolbar
+                        globalFilter={globalFilter}
+                        setGlobalFilter={setGlobalFilter}
+                        pageSize={pagination.pageSize}
+                        setPageSize={(size) =>
+                          setPagination((old) => ({ ...old, pageSize: size }))
+                        }
+                      />
+                      <DataTable table={table} />
+                      <TablePagination table={table} />
+                    </>
+                  )}
                 </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
-    </section>
-
+      </section>
+      <DetailModal
+        isOpen={isDetailModalOpen && !!selectedKrs}
+        title="Detail Kartu Rencana Studi"
+        studentName={selectedKrs.name ?? ""}
+        contentId="krsContent"
+        onClose={closeDetailModal}
+      >
+        {selectedKrs && renderTableKrs(selectedKrs)}
+      </DetailModal>
+    </>
   );
 };
 
-export default KRSDashboard;
+export default KRSPage;
