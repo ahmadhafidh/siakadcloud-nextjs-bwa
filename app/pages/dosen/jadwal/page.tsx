@@ -2,6 +2,22 @@
 import React, { useState, useEffect } from "react";
 import api from "@/app/lib/axiosInstance";
 import ScheduleCalendar from "@/app/components/ScheduleCalendar";
+import { BarLoader } from "react-spinners";
+
+interface ApiSchedule {
+  id: string;
+  day: string;
+  timeStart: string;
+  timeEnd: string;
+  classId: string;
+  className: string;
+}
+
+interface ApiCourse {
+  id: string;
+  name: string;
+  schedules: ApiSchedule[];
+}
 
 interface Jadwal {
   id: string;
@@ -23,8 +39,8 @@ const getJadwal = async (): Promise<Jadwal[]> => {
   // console.log(res.data);
 
   // flatten schedules + inject courseName & className
-  const jadwal: Jadwal[] = courses.flatMap((course: any) =>
-    course.schedules.map((schedule: any) => ({
+  const jadwal: Jadwal[] = courses.flatMap((course: ApiCourse) =>
+    course.schedules.map((schedule: ApiSchedule) => ({
       id: schedule.id,
       day: schedule.day,
       timeStart: schedule.timeStart,
@@ -62,7 +78,6 @@ const JadwalDashboard = () => {
     fetchAll();
   }, []);
 
-
   return (
     <section className="section">
       <div className="section-header">
@@ -78,7 +93,12 @@ const JadwalDashboard = () => {
               </div>
               <div className="card-body">
                 {loading ? (
-                  <p>Loading jadwal...</p>
+                  <div
+                    className="d-flex align-items-center justify-content-center"
+                    style={{ minHeight: "300px" }}
+                  >
+                    <BarLoader color="#6777ef" />
+                  </div>
                 ) : (
                   <ScheduleCalendar jadwal={jadwalList} />
                 )}

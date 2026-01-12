@@ -1,34 +1,138 @@
-// app/components/AdminNavbar.tsx
-import React from 'react';
+"use client";
+import Cookies from "js-cookie";
+import { useRouter } from "next/navigation";
+import React, { useEffect, useState } from "react";
+import dayjs from "dayjs";
+import relativeTime from "dayjs/plugin/relativeTime";
+
+dayjs.extend(relativeTime);
 
 const MahasiswaNavbar = () => {
+  const router = useRouter();
+  const [name, setName] = useState<string | null>(null);
+  const [loginTimeAgo, setLoginTimeAgo] = useState<string>("");
+
+  useEffect(() => {
+    const checkName = () => {
+      const storedName = Cookies.get("studentName") || null;
+      setName(storedName);
+    };
+    checkName();
+
+    // ambil waktu login dari cookies
+    let loginTime = Cookies.get("loginTime");
+    if (!loginTime) {
+      // kalau belum ada, set waktu login sekarang
+      loginTime = new Date().toISOString();
+      Cookies.set("loginTime", loginTime);
+    }
+
+    // fungsi untuk update waktu relative
+    const updateTimeAgo = () => {
+      setLoginTimeAgo(dayjs(loginTime).fromNow());
+    };
+
+    updateTimeAgo(); // set awal
+    checkName();
+    const interval = setInterval(updateTimeAgo, 60000); // update tiap menit
+    const intervalName = setInterval(checkName, 2000);
+
+    return () => {
+      clearInterval(interval);
+      clearInterval(intervalName);
+    };
+  }, []);
+
+  const handleLogout = () => {
+    Object.keys(Cookies.get() || {}).forEach((cookieName) => {
+      Cookies.remove(cookieName);
+    });
+
+    router.push("/pages/auth/mahasiswa/login");
+  };
+
+  // Fungsi toggle sidebar
+  const toggleSidebar = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    e.preventDefault();
+    const width = window.innerWidth;
+
+    if (width < 1030) {
+      // mobile
+      if (document.body.classList.contains("sidebar-show")) {
+        document.body.classList.remove("sidebar-show");
+        document.body.classList.add("sidebar-gone");
+      } else {
+        document.body.classList.add("sidebar-show");
+        document.body.classList.remove("sidebar-gone");
+      }
+    } else {
+      // desktop
+      document.body.classList.toggle("sidebar-mini");
+    }
+  };
+
+  // Setup responsive body class
+  useEffect(() => {
+    const setBodyClass = () => {
+      const width = window.innerWidth;
+      if (width < 1030) {
+        document.body.classList.add("sidebar-gone");
+        document.body.classList.remove("sidebar-mini", "sidebar-show");
+      } else {
+        document.body.classList.remove("sidebar-gone", "sidebar-show");
+        // jangan otomatis tambahkan sidebar-mini di desktop
+      }
+    };
+
+    setBodyClass(); // set saat mount
+    window.addEventListener("resize", setBodyClass);
+
+    return () => {
+      window.removeEventListener("resize", setBodyClass);
+    };
+  }, []);
+
   return (
     <nav className="navbar navbar-expand-lg main-navbar">
       <form className="form-inline mr-auto">
         <ul className="navbar-nav mr-3">
-          <li><a href="#" data-toggle="sidebar" className="nav-link nav-link-lg"><i className="fas fa-bars"></i></a></li>
+          <li>
+            <a
+              href="#"
+              onClick={toggleSidebar}
+              data-toggle="sidebar"
+              className="nav-link nav-link-lg"
+            >
+              <i className="fas fa-bars"></i>
+            </a>
+          </li>
         </ul>
       </form>
       <ul className="navbar-nav navbar-right">
-        <li className="dropdown dropdown-list-toggle"><a href="#" data-toggle="dropdown" className="nav-link nav-link-lg message-toggle beep"><i className="far fa-envelope"></i></a></li>
+        <li className="dropdown dropdown-list-toggle"></li>
         <li className="dropdown">
-          <a href="#" data-toggle="dropdown" className="nav-link dropdown-toggle nav-link-lg nav-link-user">
-            <img alt="image" src="../../assets/img/avatar/avatar-1.png" className="rounded-circle mr-1" />
-            <div className="d-sm-none d-lg-inline-block">Hi, Ujang Maman</div>
+          <a
+            href="#"
+            data-toggle="dropdown"
+            className="nav-link dropdown-toggle nav-link-lg nav-link-user"
+          >
+            <div className="d-sm-none d-lg-inline-block">
+              Hi, {name ?? "Loading..."}
+            </div>
           </a>
           <div className="dropdown-menu dropdown-menu-right">
-            <div className="dropdown-title">Logged in 5 min ago</div>
-            <a href="features-profile.html" className="dropdown-item has-icon">
-              <i className="far fa-user"></i> Profile
-            </a>
-            <a href="features-activities.html" className="dropdown-item has-icon">
-              <i className="fas fa-bolt"></i> Activities
-            </a>
-            <a href="features-settings.html" className="dropdown-item has-icon">
-              <i className="fas fa-cog"></i> Settings
-            </a>
+            <div className="dropdown-title">
+              Logged in {loginTimeAgo || "just now"}
+            </div>
             <div className="dropdown-divider"></div>
-            <a href="#" className="dropdown-item has-icon text-danger">
+            <a
+              href="#"
+              className="dropdown-item has-icon text-danger"
+              onClick={(e) => {
+                e.preventDefault();
+                handleLogout();
+              }}
+            >
               <i className="fas fa-sign-out-alt"></i> Logout
             </a>
           </div>

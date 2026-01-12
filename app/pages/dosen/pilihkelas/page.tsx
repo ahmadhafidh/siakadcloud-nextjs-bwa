@@ -1,9 +1,9 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { Suspense, useEffect, useState } from "react";
 import AbsensiToggle from "@/app/components/button/AbsensiToggle";
-import { useSearchParams } from "next/navigation";
 import api from "@/app/lib/axiosInstance";
 import { BarLoader } from "react-spinners";
+
 interface Student {
   id: string;
   name: string;
@@ -55,10 +55,15 @@ const PilihKelasDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [studentList, setStudentList] = useState<Student[]>([]);
   const [updates, setUpdates] = useState<Record<string, UpdatePayload>>({});
-  const searchParams = useSearchParams();
-  const matkulId = searchParams.get("matkulId");
-  const kelasId = searchParams.get("kelasId");
-  const kelasName = searchParams.get("kelasName");
+  const [matkulId, setMatkulId] = useState("");
+  const [kelasId, setKelasId] = useState("");
+  const [kelasName, setKelasName] = useState("");
+
+  useEffect(() => {
+    setMatkulId(localStorage.getItem("MatkulId") || "");
+    setKelasId(localStorage.getItem("KelasId") || "");
+    setKelasName(localStorage.getItem("KelasName") || "");
+  }, []);
 
   // API Services
   const getStudent = async () => {
@@ -110,10 +115,10 @@ const PilihKelasDashboard = () => {
         await UpdateStudent(studentId, data); // pake fungsi API kamu
       }
       fetchStudent();
-      alert("Semua data berhasil disimpan");
+      alert("Semua data berhasil disimpan ✅");
     } catch (err) {
       console.error(err);
-      alert("Gagal menyimpan data");
+      alert("Gagal menyimpan data ❌");
     }
   };
 
@@ -129,7 +134,7 @@ const PilihKelasDashboard = () => {
       }
     };
     fetchAll();
-  }, []);
+  }, [matkulId, kelasId]);
 
   const fetchStudent = async () => {
     try {
@@ -191,180 +196,185 @@ const PilihKelasDashboard = () => {
   };
 
   return (
-    <section className="section">
-      <div className="section-header">
-        <h1>Akademik</h1>
-      </div>
-
-      <div className="section-body">
-        <h2 className="section-title">Kelas {kelasName}</h2>
-        <p className="section-lead">Silahkan mengisi absensi dan nilai</p>
-
-        <div className="position-relative mb-4">
-          <i
-            className="fas fa-search position-absolute"
-            style={{
-              top: "50%",
-              right: 15,
-              transform: "translateY(-50%)",
-              color: "#aaa",
-            }}
-          />
-          <input
-            type="text"
-            id="searchMahasiswa"
-            className="form-control pr-5"
-            placeholder="Cari nama mahasiswa..."
-            onChange={handleSearch}
-          />
+    <Suspense>
+      <section className="section">
+        <div className="section-header">
+          <h1>Akademik</h1>
         </div>
-        {loading ? (
-          <div
-            className="d-flex align-items-center justify-content-center"
-            style={{ minHeight: "300px" }}
-          >
-            <BarLoader color="#6777ef" />
+
+        <div className="section-body">
+          <h2 className="section-title">Kelas {kelasName}</h2>
+          <p className="section-lead">Silahkan mengisi absensi dan nilai</p>
+
+          <div className="position-relative mb-4">
+            <i
+              className="fas fa-search position-absolute"
+              style={{
+                top: "50%",
+                right: 15,
+                transform: "translateY(-50%)",
+                color: "#aaa",
+              }}
+            />
+            <input
+              type="text"
+              id="searchMahasiswa"
+              className="form-control pr-5"
+              placeholder="Cari nama mahasiswa..."
+              onChange={handleSearch}
+            />
           </div>
-        ) : (
-          <>
-            <div className="table-responsive">
-              <table className="table table-bordered text-center align-middle">
-                <thead className="table-light">
-                  <tr>
-                    <th rowSpan={2}>Nama Mahasiswa</th>
-                    <th colSpan={16}>Absensi</th>
-                    <th colSpan={4}>Tugas</th>
-                    <th rowSpan={2}>UTS</th>
-                    <th rowSpan={2}>UAS</th>
-                    <th rowSpan={2}>Nilai Akhir</th>
-                    <th rowSpan={2}>Huruf Mutu</th>
-                  </tr>
-                  <tr>
-                    {[...Array(16)].map((_, i) => (
-                      <th key={`absen${i}`}>{i + 1}</th>
-                    ))}
-                    {[...Array(4)].map((_, i) => (
-                      <th key={`tugas${i}`}>{i + 1}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody id="tableMahasiswa">
-                  {studentList.map((student, rowIndex) => {
-                    // ambil course pertama (atau filter sesuai courseId matkul)
-                    const course = student.studyPlan[0]?.courses[0];
-                    const { totalNilai, grade } = hitungNilai(course);
-
-                    return (
-                      <tr key={student.id}>
-                        <td>{student.name}</td>
-
-                        {/* Absensi 16 pertemuan */}
-                        {Array.from({ length: 16 }).map((_, i) => {
-                          const attendanceKey = `attendance${
-                            i + 1
-                          }` as keyof Course;
-                          const status = course?.[attendanceKey] as
-                            | string
-                            | null;
-
-                          return (
-                            <td key={`absen-${rowIndex}-${i}`}>
-                              <AbsensiToggle
-                                defaultValue={status}
-                                onChange={(val) =>
-                                  handleChange(course.id, attendanceKey, val)
-                                }
-                              />
-                            </td>
-                          );
-                        })}
-
-                        {/* Tugas 4 kali (atau 8 kalau kamu mau extend) */}
-                        {Array.from({ length: 4 }).map((_, i) => {
-                          const taskKey = `task${i + 1}` as keyof Course;
-                          const nilaiTugas = course?.[taskKey] ?? null;
-
-                          return (
-                            <td key={`tugas-${rowIndex}-${i}`}>
-                              <input
-                                type="number"
-                                className="tugas form-control"
-                                min={0}
-                                max={100}
-                                defaultValue={nilaiTugas ?? ""}
-                                style={{ width: 80 }}
-                                onChange={(e) => {
-                                  const val = Math.min(
-                                    100,
-                                    Math.max(0, Number(e.target.value))
-                                  );
-                                  handleChange(course.id, taskKey, val);
-                                }}
-                              />
-                            </td>
-                          );
-                        })}
-
-                        <td>
-                          <input
-                            type="number"
-                            className="uts form-control"
-                            min={0}
-                            max={100}
-                            defaultValue={course?.uts ?? ""}
-                            style={{ width: 80 }}
-                            onChange={(e) => {
-                              const val = Math.min(
-                                100,
-                                Math.max(0, Number(e.target.value))
-                              );
-                              handleChange(course.id, "uts", val);
-                            }}
-                          />
-                        </td>
-                        <td>
-                          <input
-                            type="number"
-                            className="uas form-control"
-                            min={0}
-                            max={100}
-                            defaultValue={course?.uas ?? ""}
-                            style={{ width: 80 }}
-                            onChange={(e) => {
-                              const val = Math.min(
-                                100,
-                                Math.max(0, Number(e.target.value))
-                              );
-                              handleChange(course.id, "uas", val);
-                            }}
-                          />
-                        </td>
-                        <td className="nilai-total">
-                          <input
-                            className="uas form-control"
-                            disabled
-                            value={totalNilai}
-                            style={{ width: 80 }}
-                            onChange={(e) => {
-                              handleChange(course.id, "score", totalNilai);
-                            }}
-                          />
-                        </td>
-                        <td className="huruf-mutu fw-bold">{grade}</td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-
-              <button className="btn btn-primary mt-2" onClick={handleSaveAll}>
-                Simpan
-              </button>
+          {loading ? (
+            <div
+              className="d-flex align-items-center justify-content-center"
+              style={{ minHeight: "300px" }}
+            >
+              <BarLoader color="#6777ef" />
             </div>
-          </>
-        )}
-      </div>
-    </section>
+          ) : (
+            <>
+              <div className="table-responsive">
+                <table className="table table-bordered text-center align-middle">
+                  <thead className="table-light">
+                    <tr>
+                      <th rowSpan={2}>Nama Mahasiswa</th>
+                      <th colSpan={16}>Absensi</th>
+                      <th colSpan={4}>Tugas</th>
+                      <th rowSpan={2}>UTS</th>
+                      <th rowSpan={2}>UAS</th>
+                      <th rowSpan={2}>Nilai Akhir</th>
+                      <th rowSpan={2}>Huruf Mutu</th>
+                    </tr>
+                    <tr>
+                      {[...Array(16)].map((_, i) => (
+                        <th key={`absen${i}`}>{i + 1}</th>
+                      ))}
+                      {[...Array(4)].map((_, i) => (
+                        <th key={`tugas${i}`}>{i + 1}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody id="tableMahasiswa">
+                    {studentList.map((student, rowIndex) => {
+                      // ambil course pertama (atau filter sesuai courseId matkul)
+                      const course = student.studyPlan[0]?.courses[0];
+                      const { totalNilai, grade } = hitungNilai(course);
+
+                      return (
+                        <tr key={student.id}>
+                          <td>{student.name}</td>
+
+                          {/* Absensi 16 pertemuan */}
+                          {Array.from({ length: 16 }).map((_, i) => {
+                            const attendanceKey = `attendance${
+                              i + 1
+                            }` as keyof Course;
+                            const status = course?.[attendanceKey] as
+                              | string
+                              | null;
+
+                            return (
+                              <td key={`absen-${rowIndex}-${i}`}>
+                                <AbsensiToggle
+                                  defaultValue={status}
+                                  onChange={(val) =>
+                                    handleChange(course.id, attendanceKey, val)
+                                  }
+                                />
+                              </td>
+                            );
+                          })}
+
+                          {/* Tugas 4 kali (atau 8 kalau kamu mau extend) */}
+                          {Array.from({ length: 4 }).map((_, i) => {
+                            const taskKey = `task${i + 1}` as keyof Course;
+                            const nilaiTugas = course?.[taskKey] ?? null;
+
+                            return (
+                              <td key={`tugas-${rowIndex}-${i}`}>
+                                <input
+                                  type="number"
+                                  className="tugas form-control"
+                                  min={0}
+                                  max={100}
+                                  defaultValue={nilaiTugas ?? ""}
+                                  style={{ width: 80 }}
+                                  onChange={(e) => {
+                                    const val = Math.min(
+                                      100,
+                                      Math.max(0, Number(e.target.value))
+                                    );
+                                    handleChange(course.id, taskKey, val);
+                                  }}
+                                />
+                              </td>
+                            );
+                          })}
+
+                          <td>
+                            <input
+                              type="number"
+                              className="uts form-control"
+                              min={0}
+                              max={100}
+                              defaultValue={course?.uts ?? ""}
+                              style={{ width: 80 }}
+                              onChange={(e) => {
+                                const val = Math.min(
+                                  100,
+                                  Math.max(0, Number(e.target.value))
+                                );
+                                handleChange(course.id, "uts", val);
+                              }}
+                            />
+                          </td>
+                          <td>
+                            <input
+                              type="number"
+                              className="uas form-control"
+                              min={0}
+                              max={100}
+                              defaultValue={course?.uas ?? ""}
+                              style={{ width: 80 }}
+                              onChange={(e) => {
+                                const val = Math.min(
+                                  100,
+                                  Math.max(0, Number(e.target.value))
+                                );
+                                handleChange(course.id, "uas", val);
+                              }}
+                            />
+                          </td>
+                          <td className="nilai-total">
+                            <input
+                              className="uas form-control"
+                              disabled
+                              value={totalNilai}
+                              style={{ width: 80 }}
+                              onChange={() => {
+                                handleChange(course.id, "score", totalNilai);
+                              }}
+                            />
+                          </td>
+                          <td className="huruf-mutu fw-bold">{grade}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+
+                <button
+                  className="btn btn-primary mt-2"
+                  onClick={handleSaveAll}
+                >
+                  Simpan
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      </section>
+    </Suspense>
   );
 };
 

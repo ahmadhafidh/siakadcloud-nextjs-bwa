@@ -18,6 +18,28 @@ import TableToolbar from "@/app/components/table/TableToolbar";
 import TablePagination from "@/app/components/table/TablePagination";
 import { DetailModal, renderTableKrs } from "@/app/components/form/DetailForm";
 
+interface ApiCourse {
+  id: string;
+  name: string;
+  code: string;
+  credits: number;
+  lectureName: string;
+}
+
+interface ApiStudyPlan {
+  id: string;
+  name: string;
+  studentNumber: string;
+  yearName: string;
+  status: string;
+  createdAt: string;
+}
+
+interface ApiKrs {
+  studyPlan: ApiStudyPlan;
+  courses: ApiCourse[];
+}
+
 interface Krs {
   id: string;
   name: string;
@@ -87,14 +109,14 @@ const KRSPage = () => {
       const data = await getKrs();
 
       // mapping supaya sesuai interface Krs
-      const mappedData: Krs[] = data.map((item: any) => ({
+      const mappedData: Krs[] = data.map((item: ApiKrs) => ({
         id: item.studyPlan.id,
         name: item.studyPlan.name,
         studentNumber: item.studyPlan.studentNumber,
         studentYearName: item.studyPlan.yearName,
         status: item.studyPlan.status,
         createdAt: item.studyPlan.createdAt,
-        courses: item.courses.map((c: any) => ({
+        courses: item.courses.map((c: ApiCourse) => ({
           id: c.id,
           courseName: c.name,
           courseCode: c.code,
@@ -103,7 +125,11 @@ const KRSPage = () => {
         })),
       }));
 
-      setKrsList(mappedData);
+      const sortedData = mappedData.sort((a, b) =>
+        a.name.localeCompare(b.name, "id", { sensitivity: "base" })
+      );
+
+      setKrsList(sortedData);
     } catch (err) {
       console.error("Gagal fetch krs:", err);
     }
@@ -150,19 +176,22 @@ const KRSPage = () => {
         accessorKey: "status", // atau accessorFn: row => row.status
         header: "Status",
         cell: ({ row }) => {
-          const status = row.original?.status?.toLowerCase();
-          const badgeClass =
-            status === "accepted"
-              ? "badge-success"
-              : status === "process"
-              ? "badge-warning"
-              : status === "rejected"
-              ? "badge-danger"
-              : "badge-secondary";
-              
+          // ambil status, fallback ke "process" jika null/undefined
+          const statusRaw = row.original?.status ?? "process";
+          const effectiveStatus = String(statusRaw).toUpperCase();
 
+          // mapping badge class
+          const badgeClassMap: Record<string, string> = {
+            ACCEPTED: "badge-success",
+            PROCESS: "badge-warning",
+            REJECTED: "badge-danger",
+          };
+          const badgeClass =
+            badgeClassMap[effectiveStatus] ?? "badge-secondary";
+
+          // tampilkan badge
           return (
-            <span className={`badge ${badgeClass}`} style={{ width:"100px" }}>{row.original.status}</span>
+            <span className={`badge ${badgeClass}`}>{effectiveStatus}</span>
           );
         },
       },
@@ -189,11 +218,11 @@ const KRSPage = () => {
                   handleToggleStatus(aksi);
                 }}
                 className={`btn btn-sm mx-1 ${
-                  aksi.status === "REJECTED" ? "btn-success" : "btn-danger"
+                  aksi.status === "ACCEPTED" ? "btn-danger" : "btn-success"
                 }`}
                 style={{ width: "80px" }}
               >
-                {aksi.status === "REJECTED" ? "ACCEPT" : "REJECT"}
+                {aksi.status === "ACCEPTED" ? "REJECT" : "ACCEPT"}
               </button>
             </>
           );
