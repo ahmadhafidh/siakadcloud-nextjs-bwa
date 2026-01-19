@@ -1,4 +1,5 @@
 // app/layout.tsx
+import Script from "next/script";
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
@@ -21,35 +22,35 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {children}
         
       {/* Script JS Stisla */}
-        <script src="/assets/modules/jquery.min.js"></script>
-        <script src="/assets/modules/popper.js"></script>
-        <script src="/assets/modules/tooltip.js"></script>
-        <script src="/assets/modules/bootstrap/js/bootstrap.min.js"></script>
-        <script src="/assets/modules/nicescroll/jquery.nicescroll.min.js"></script>
-        <script src="/assets/modules/moment.min.js"></script>
-        <script src="/assets/js/stisla.js"></script>
+        <Script src="/assets/modules/jquery.min.js"></Script>
+        <Script src="/assets/modules/popper.js"></Script>
+        <Script src="/assets/modules/tooltip.js"></Script>
+        <Script src="/assets/modules/bootstrap/js/bootstrap.min.js"></Script>
+        <Script src="/assets/modules/nicescroll/jquery.nicescroll.min.js"></Script>
+        <Script src="/assets/modules/moment.min.js"></Script>
+        <Script src="/assets/js/stisla.js"></Script>
 
       {/* Script JS Stisla */}
-        <script src="/assets/modules/simple-weather/jquery.simpleWeather.min.js"></script>
-        <script src="/assets/modules/chart.min.js"></script>
-        <script src="/assets/modules/chocolat/dist/js/jquery.chocolat.min.js"></script>
-        <script src="/assets/modules/chart.min.js"></script>
-        <script src="/assets/modules/datatables/datatables.min.js"></script>
-        <script src="/assets/modules/datatables/DataTables-1.10.16/js/dataTables.bootstrap4.min.js"></script>
-        <script src="/assets/modules/datatables/Select-1.2.4/js/dataTables.select.min.js"></script>
-        <script src="/assets/modules/jquery-ui/jquery-ui.min.js"></script>
-        <script src="/assets/modules/fullcalendar/fullcalendar.min.js"></script>
-        <script src="/assets/modules/prism/prism.js"></script>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+        <Script src="/assets/modules/simple-weather/jquery.simpleWeather.min.js"></Script>
+        <Script src="/assets/modules/chart.min.js"></Script>
+        <Script src="/assets/modules/chocolat/dist/js/jquery.chocolat.min.js"></Script>
+        <Script src="/assets/modules/chart.min.js"></Script>
+        <Script src="/assets/modules/datatables/datatables.min.js"></Script>
+        <Script src="/assets/modules/datatables/DataTables-1.10.16/js/dataTables.bootstrap4.min.js"></Script>
+        <Script src="/assets/modules/datatables/Select-1.2.4/js/dataTables.select.min.js"></Script>
+        <Script src="/assets/modules/jquery-ui/jquery-ui.min.js"></Script>
+        <Script src="/assets/modules/fullcalendar/fullcalendar.min.js"></Script>
+        <Script src="/assets/modules/prism/prism.js"></Script>
+        <Script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></Script>
 
-        <script src="/assets/js/page/modules-ion-icons.js"></script>
-        <script src="/assets/js/page/modules-chartjs.js"></script>
-        <script src="/assets/js/page/modules-datatables.js"></script>
-        <script src="/assets/js/page/bootstrap-modal.js"></script>
-        <script src="/assets/js/page/modules-calendar.js"></script>
+        <Script src="/assets/js/page/modules-ion-icons.js"></Script>
+        <Script src="/assets/js/page/modules-chartjs.js"></Script>
+        <Script src="/assets/js/page/modules-datatables.js"></Script>
+        <Script src="/assets/js/page/bootstrap-modal.js"></Script>
+        <Script src="/assets/js/page/modules-calendar.js"></Script>
 
-        <script src="/assets/js/scripts.js"></script>
-        <script src="/assets/js/custom.js"></script>
+        <Script src="/assets/js/Scripts.js"></Script>
+        <Script src="/assets/js/custom.js"></Script>
         
       </body>
     </html>
