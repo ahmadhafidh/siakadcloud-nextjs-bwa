@@ -12,7 +12,6 @@
     "@radix-ui/react-dialog": "^1.1.15",
     "@radix-ui/react-popover": "^1.1.15",
     "@tanstack/react-table": "^8.21.3",
-    "@types/js-cookie": "^3.0.6",
     "@ui-kitten/components": "^5.3.1",
     "axios": "^1.13.2",
     "bootstrap": "^5.3.6",
@@ -45,6 +44,8 @@
     "@types/axios": "^0.14.4",
     "@types/highcharts": "^7.0.0",
     "@types/jquery": "^3.5.32",
+    "@types/js-cookie": "^3.0.6",
+    "@types/midtrans-client": "^1.4.0",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-big-calendar": "^1.16.3",
@@ -52,6 +53,7 @@
     "@types/select2": "^4.0.63",
     "eslint": "^9",
     "eslint-config-next": "15.3.1",
+    "shadcn-ui": "^0.9.5",
     "typescript": "^5"
   }
 }

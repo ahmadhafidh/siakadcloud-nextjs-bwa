@@ -18,7 +18,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="stylesheet" href="/assets/css/style.css" />
         <link rel="stylesheet" href="/assets/css/components.css" />
       </head>
-      <body>
+      <body className="">
         {children}
         
       {/* Script JS Stisla */}
