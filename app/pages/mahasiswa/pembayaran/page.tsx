@@ -47,7 +47,6 @@ const updatePembayaran = async (id: string) => {
 const MahasiswaPembayaran = () => {
   const [loading, setLoading] = useState(true);
   const [pembayaranList, setPembayaranList] = useState<Pembayaran[]>([]);
-  const [isPaying, setIsPaying] = useState(false);
 
   useEffect(() => {
     const script = document.createElement("script");
@@ -92,6 +91,9 @@ const MahasiswaPembayaran = () => {
       const pembayaran = pembayaranList.find((p) => p.id === id);
       if (!pembayaran) return;
       
+      const newCode =
+        pembayaran.code.slice(0, -4) +
+        String(Math.floor(Math.random() * 10000)).padStart(4, "0");
 
       const res = await fetch("/api/midtrans", {
         method: "POST",
@@ -99,7 +101,7 @@ const MahasiswaPembayaran = () => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          orderId: pembayaran.code,
+          orderId: newCode,
           grossAmount: pembayaran.student.tfGroup.amount,
           customerName: pembayaran.student.name,
           email: "guest@example.com", // bisa diganti jika ada email asli
@@ -107,8 +109,9 @@ const MahasiswaPembayaran = () => {
       });
 
       const { token } = await res.json();
+      console.log("token", token);
 
-      // @ts-ignore
+      // @ts-expect-error belum di support
       window.snap.pay(token, {
         onSuccess: async function () {
           // Update status ke PAID setelah pembayaran berhasil

@@ -1327,7 +1327,7 @@ axe-core@^4.10.0:
   resolved "https://registry.yarnpkg.com/axe-core/-/axe-core-4.10.3.tgz#04145965ac7894faddbac30861e5d8f11bfd14fc"
   integrity sha512-Xm7bpRXnDSX2YE2YFfBk2FnF0ep6tmG7xPh8iHee8MIcrgq762Nkce856dYtJYLkuIoYZvGfTs/PbZhideTcEg==
 
-axios@*, axios@^1.13.2:
+axios@*, axios@^1.13.2, axios@^1.9.0:
   version "1.13.2"
   resolved "https://registry.yarnpkg.com/axios/-/axios-1.13.2.tgz#9ada120b7b5ab24509553ec3e40123521117f687"
   integrity sha512-VPk9ebNqPcy5lRGuSlKx752IlDatOjT9paPlm8A7yOuW2Fbvp4X3JznJtT4f0GzGLLiWE9W8onz51SqLYwzGaA==
@@ -2814,6 +2814,14 @@ micromatch@^4.0.4, micromatch@^4.0.8:
   dependencies:
     braces "^3.0.3"
     picomatch "^2.3.1"
+
+midtrans-client@^1.4.3:
+  version "1.4.3"
+  resolved "https://registry.yarnpkg.com/midtrans-client/-/midtrans-client-1.4.3.tgz#3a656e741de15f080a65a21f328871d47a62055d"
+  integrity sha512-2oNEYgD8+FeUIOE5rUnLmqacbh3GHWvq+xKmL3dS4ZgCAiD5uzQQrKOz7tJ+7OOi3TbHDD8POLI2D6/xzQMCxw==
+  dependencies:
+    axios "^1.9.0"
+    lodash "^4.17.21"
 
 mime-db@1.52.0:
   version "1.52.0"
