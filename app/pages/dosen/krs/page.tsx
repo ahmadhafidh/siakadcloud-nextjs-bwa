@@ -137,7 +137,7 @@ const KRSPage = () => {
 
   const handleToggleStatus = async (krs: Krs) => {
     try {
-      const newStatus = krs.status === "ACCEPTED" ? "REJECTED" : "ACCEPTED";
+      const newStatus = krs.status === "APPROVED" ? "REJECTED" : "APPROVED";
 
       const updated = await updateStatus(krs.id, {
         status: newStatus,
@@ -177,13 +177,13 @@ const KRSPage = () => {
         header: "Status",
         cell: ({ row }) => {
           // ambil status, fallback ke "process" jika null/undefined
-          const statusRaw = row.original?.status ?? "process";
+          const statusRaw = row.original?.status ?? "onprocess";
           const effectiveStatus = String(statusRaw).toUpperCase();
 
           // mapping badge class
           const badgeClassMap: Record<string, string> = {
-            ACCEPTED: "badge-success",
-            PROCESS: "badge-warning",
+            APPROVED: "badge-success",
+            ONPROCESS: "badge-warning",
             REJECTED: "badge-danger",
           };
           const badgeClass =
@@ -191,7 +191,7 @@ const KRSPage = () => {
 
           // tampilkan badge
           return (
-            <span className={`badge ${badgeClass}`}>{effectiveStatus}</span>
+            <span style={{ width: "100px" }} className={`badge ${badgeClass}`}>{effectiveStatus}</span>
           );
         },
       },
@@ -218,11 +218,11 @@ const KRSPage = () => {
                   handleToggleStatus(aksi);
                 }}
                 className={`btn btn-sm mx-1 ${
-                  aksi.status === "ACCEPTED" ? "btn-danger" : "btn-success"
+                  aksi.status === "APPROVED" ? "btn-danger" : "btn-success"
                 }`}
                 style={{ width: "80px" }}
               >
-                {aksi.status === "ACCEPTED" ? "REJECT" : "ACCEPT"}
+                {aksi.status === "APPROVED" ? "REJECT" : "APPROVE"}
               </button>
             </>
           );
