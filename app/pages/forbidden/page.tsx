@@ -1,22 +1,17 @@
 "use client";
 import React from "react";
 
-interface ForbiddenPageProps {
-  title?: string;
-  message?: string;
-  showHomeButton?: boolean;
-}
+export default function ForbiddenPage() {
+  // DEFAULT CONFIG (bukan props)
+  const title = "403 - Akses Ditolak";
+  const message = "Maaf, Anda tidak memiliki izin untuk mengakses halaman ini.";
+  const showHomeButton = true;
 
-const ForbiddenPage: React.FC<ForbiddenPageProps> = ({
-  title = "403 - Akses Ditolak",
-  message = "Maaf, Anda tidak memiliki izin untuk mengakses halaman ini.",
-  showHomeButton = true,
-}) => {
-  const handleGoHome = (): void => {
+  const handleGoHome = () => {
     window.location.href = "/";
   };
 
-  const handleGoBack = (): void => {
+  const handleGoBack = () => {
     window.history.back();
   };
 
@@ -31,7 +26,8 @@ const ForbiddenPage: React.FC<ForbiddenPageProps> = ({
           <div className="page-search">
             <div className="alert alert-warning text-left mb-4">
               <i className="fas fa-info-circle mr-2"></i>
-              Jika Anda merasa ini adalah kesalahan, silakan hubungi administrator sistem.
+              Jika Anda merasa ini adalah kesalahan, silakan hubungi
+              administrator sistem.
             </div>
 
             <div className="d-flex justify-content-center gap-2 flex-wrap">
@@ -60,6 +56,4 @@ const ForbiddenPage: React.FC<ForbiddenPageProps> = ({
       </div>
     </section>
   );
-};
-
-export default ForbiddenPage;
+}

@@ -81,7 +81,6 @@ const DosenDashboard = () => {
   useEffect(() => {
     if (profile.name) {
       Cookies.set("lectureName", profile?.name, { expires: 1 });
-      console.log(loading);
     }
   }, [profile]);
 

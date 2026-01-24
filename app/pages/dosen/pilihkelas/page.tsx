@@ -1,8 +1,9 @@
 "use client";
-import React, { Suspense, useEffect, useState } from "react";
+import React, { Suspense, useEffect, useState, useCallback } from "react";
 import AbsensiToggle from "@/app/components/button/AbsensiToggle";
 import api from "@/app/lib/axiosInstance";
 import { BarLoader } from "react-spinners";
+import { get } from "jquery";
 
 interface Student {
   id: string;
@@ -66,16 +67,16 @@ const PilihKelasDashboard = () => {
   }, []);
 
   // API Services
-  const getStudent = async () => {
+  const getStudent = useCallback(async () => {
     const res = await api.get(
-      `/manage-lectures/courses/${matkulId}/class/${kelasId}`
+      `/manage-lectures/courses/${matkulId}/class/${kelasId}`,
     );
     return res.data.data;
-  };
+  }, [matkulId, kelasId]);
   const UpdateStudent = async (id: string, data: Partial<Course>) => {
     const res = await api.put(
       `/manage-lectures/courses/studyplancourse/${id}`,
-      data
+      data,
     );
     return res.data;
   };
@@ -83,7 +84,7 @@ const PilihKelasDashboard = () => {
   const handleChange = (
     courseId: string,
     field: string,
-    value: string | number | null
+    value: string | number | null,
   ) => {
     setUpdates((prev) => {
       const updatedCourse = {
@@ -96,7 +97,7 @@ const PilihKelasDashboard = () => {
         studentList
           .flatMap((s) => s.studyPlan[0]?.courses)
           .find((c) => c.id === courseId)!,
-        updatedCourse
+        updatedCourse,
       );
 
       updatedCourse.score = Number(totalNilai);
@@ -122,6 +123,18 @@ const PilihKelasDashboard = () => {
     }
   };
 
+  const fetchStudent = useCallback(async () => {
+    try {
+      const data = await getStudent();
+      const sortedData = data.sort((a: Student, b: Student) =>
+        a.name.localeCompare(b.name, "id", { sensitivity: "base" }),
+      );
+      setStudentList(sortedData);
+    } catch (err) {
+      console.error("Gagal fetch student:", err);
+    }
+  }, [getStudent]);
+
   // ambil data awal
   useEffect(() => {
     const fetchAll = async () => {
@@ -134,19 +147,7 @@ const PilihKelasDashboard = () => {
       }
     };
     fetchAll();
-  }, [matkulId, kelasId]);
-
-  const fetchStudent = async () => {
-    try {
-      const data = await getStudent();
-      const sortedData = data.sort((a: Student, b: Student) =>
-        a.name.localeCompare(b.name, "id", { sensitivity: "base" })
-      );
-      setStudentList(sortedData);
-    } catch (err) {
-      console.error("Gagal fetch student:", err);
-    }
-  };
+  }, [fetchStudent]);
 
   function hitungNilai(course: Course, updatesForStudent?: UpdatePayload) {
     // ambil data asli + override dari updates
@@ -161,7 +162,7 @@ const PilihKelasDashboard = () => {
 
     // rata-rata tugas
     const tugasValues = [data.task1, data.task2, data.task3, data.task4].map(
-      (t) => Number(t) || 0
+      (t) => Number(t) || 0,
     );
 
     const nilaiTugas =
@@ -302,7 +303,7 @@ const PilihKelasDashboard = () => {
                                   onChange={(e) => {
                                     const val = Math.min(
                                       100,
-                                      Math.max(0, Number(e.target.value))
+                                      Math.max(0, Number(e.target.value)),
                                     );
                                     handleChange(course.id, taskKey, val);
                                   }}
@@ -322,7 +323,7 @@ const PilihKelasDashboard = () => {
                               onChange={(e) => {
                                 const val = Math.min(
                                   100,
-                                  Math.max(0, Number(e.target.value))
+                                  Math.max(0, Number(e.target.value)),
                                 );
                                 handleChange(course.id, "uts", val);
                               }}
@@ -339,7 +340,7 @@ const PilihKelasDashboard = () => {
                               onChange={(e) => {
                                 const val = Math.min(
                                   100,
-                                  Math.max(0, Number(e.target.value))
+                                  Math.max(0, Number(e.target.value)),
                                 );
                                 handleChange(course.id, "uas", val);
                               }}

@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo, useCallback } from "react";
 import api from "@/app/lib/axiosInstance";
 import {
   ColumnDef,
@@ -110,7 +110,7 @@ const MahasiswaKRS = () => {
     year: "",
   });
   const [matkulList, setMatkulList] = useState<ApiMatkulResponse["courses"][]>(
-    []
+    [],
   );
   const [krsList, setKrsList] = useState<Krs[]>([]);
   const [loading, setLoading] = useState(true);
@@ -153,7 +153,7 @@ const MahasiswaKRS = () => {
       setKrsList(data);
 
       const courseNames = data.flatMap((krs: ApiKrs) =>
-        krs.courses.map((c) => c.name)
+        krs.courses.map((c) => c.name),
       );
       setExistingCourseNames(courseNames);
     } catch (err) {
@@ -211,7 +211,7 @@ const MahasiswaKRS = () => {
     createdAt: "",
   });
 
-  const openDetailModal = (data: ApiKrs | Krs) => {
+  const openDetailModal = useCallback((data: ApiKrs | Krs) => {
     if ("year" in data) {
       // kalau dari API
       setSelectedKrs(mapApiToKrs(data));
@@ -220,7 +220,7 @@ const MahasiswaKRS = () => {
       setSelectedKrs(data);
     }
     setIsDetailModalOpen(true);
-  };
+  }, []);
 
   const closeDetailModal = () => {
     setIsDetailModalOpen(false);
@@ -257,10 +257,10 @@ const MahasiswaKRS = () => {
             status === "approved"
               ? "badge-success"
               : status === "onprocess"
-              ? "badge-warning"
-              : status === "rejected"
-              ? "badge-danger"
-              : "badge-secondary";
+                ? "badge-warning"
+                : status === "rejected"
+                  ? "badge-danger"
+                  : "badge-secondary";
 
           return (
             <span style={{ width: 100 }} className={`badge ${badgeClass}`}>
@@ -301,7 +301,7 @@ const MahasiswaKRS = () => {
         },
       },
     ],
-    []
+    [openDetailModal],
   );
 
   // Inisialisasi react-table
@@ -398,7 +398,7 @@ const MahasiswaKRS = () => {
                                           type="checkbox"
                                           disabled={alreadyTaken}
                                           checked={selectedMatkul.includes(
-                                            matkul.id
+                                            matkul.id,
                                           )}
                                           onChange={(e) => {
                                             if (e.target.checked) {
@@ -409,8 +409,8 @@ const MahasiswaKRS = () => {
                                             } else {
                                               setSelectedMatkul(
                                                 selectedMatkul.filter(
-                                                  (id) => id !== matkul.id
-                                                )
+                                                  (id) => id !== matkul.id,
+                                                ),
                                               );
                                             }
                                           }}

@@ -102,7 +102,6 @@ const MahasiswaDashboard = () => {
   useEffect(() => {
     if (dashboard?.profile?.name) {
       Cookies.set("studentName", dashboard?.profile?.name, { expires: 1 });
-      console.log(loading);
     }
   }, [dashboard]);
 
@@ -161,7 +160,7 @@ const MahasiswaDashboard = () => {
                 showScrollbar={false}
                 title="Kelas yang diambil"
               />
-              
+
               <AktivitasKRS
                 studyPlans={mappedPlans}
                 detailLink="/pages/mahasiswa/krs"

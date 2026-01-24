@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import api from "@/app/lib/axiosInstance";
 import {
   ColumnDef,
@@ -81,7 +81,7 @@ const KHSPage = () => {
       const sortedData = data.sort((a: Khs, b: Khs) =>
         a.studentName.localeCompare(b.studentName, "id", {
           sensitivity: "base",
-        })
+        }),
       );
       setKhsList(sortedData);
     } catch (err) {
@@ -116,10 +116,10 @@ const KHSPage = () => {
     createdAt: "",
   });
 
-  const openDetailModal = (apiData: any) => {
+  const openDetailModal = useCallback((apiData: any) => {
     setSelectedKhs(mapApiToKhs(apiData));
     setIsDetailModalOpen(true);
-  };
+  }, []);
 
   const closeDetailModal = () => {
     setIsDetailModalOpen(false);
@@ -170,7 +170,7 @@ const KHSPage = () => {
         },
       },
     ],
-    []
+    [openDetailModal],
   );
 
   // Inisialisasi react-table

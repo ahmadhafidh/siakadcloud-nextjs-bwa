@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo, useCallback } from "react";
 
 import api from "@/app/lib/axiosInstance";
 import {
@@ -74,7 +74,7 @@ const updatePembayaran = async (
   id: string,
   data: {
     status: string;
-  }
+  },
 ) => {
   const res = await api.put(`/payments/${id}`, data);
   return res.data;
@@ -129,7 +129,7 @@ const PembayaranPage = () => {
       const sortedData = data.sort((a: Mahasiswa, b: Mahasiswa) =>
         a.name.localeCompare(b.name, "id", {
           sensitivity: "base",
-        })
+        }),
       );
       setMahasiswaList(sortedData);
     } catch (err) {
@@ -143,7 +143,7 @@ const PembayaranPage = () => {
       const sortedData = data.sort((a: Pembayaran, b: Pembayaran) =>
         a.student.name.localeCompare(b.student.name, "id", {
           sensitivity: "base",
-        })
+        }),
       );
 
       setPembayaranList(sortedData);
@@ -152,12 +152,12 @@ const PembayaranPage = () => {
     }
   };
 
-  const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
-  ) => {
-    const { name, value } = e.target;
-    setSelectedPembayaran((prev) => ({ ...prev, [name]: value }));
-  };
+  // const handleInputChange = (
+  //   e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  // ) => {
+  //   const { name, value } = e.target;
+  //   setSelectedPembayaran((prev) => ({ ...prev, [name]: value }));
+  // };
 
   const generatePaymentCode = (): string => {
     const now = new Date();
@@ -173,7 +173,7 @@ const PembayaranPage = () => {
   };
 
   const handleAddNewPembayaran = async (
-    e: React.FormEvent<HTMLFormElement>
+    e: React.FormEvent<HTMLFormElement>,
   ) => {
     e.preventDefault();
     try {
@@ -197,7 +197,7 @@ const PembayaranPage = () => {
     }
   };
 
-  const handleToggleStatus = async (pembayaran: Pembayaran) => {
+  const handleToggleStatus = useCallback(async (pembayaran: Pembayaran) => {
     try {
       const newStatus = pembayaran.status === "UNPAID" ? "PAID" : "UNPAID";
 
@@ -206,13 +206,13 @@ const PembayaranPage = () => {
       });
 
       setPembayaranList((prev) =>
-        prev.map((p) => (p.id === updated.id ? updated : p))
+        prev.map((p) => (p.id === updated.id ? updated : p)),
       );
       fetchPembayaran();
     } catch (err) {
       console.error("Gagal toggle status pembayaran:", err);
     }
-  };
+  }, []);
 
   const statusOptions = [
     { label: "UNPAID", value: "UNPAID" },
@@ -250,8 +250,8 @@ const PembayaranPage = () => {
             statusLower === "paid"
               ? "badge-success"
               : statusLower === "unpaid"
-              ? "badge-warning"
-              : "badge-secondary";
+                ? "badge-warning"
+                : "badge-secondary";
           return <span className={`badge ${badgeClass}`}>{rawStatus}</span>;
         },
       },
@@ -289,7 +289,7 @@ const PembayaranPage = () => {
         },
       },
     ],
-    []
+    [handleToggleStatus],
   );
 
   // Inisialisasi react-table
@@ -353,7 +353,7 @@ const PembayaranPage = () => {
                               // Jika ChangeEvent
                               handleNewPembayaranChange(
                                 "studentId",
-                                e.target.value
+                                e.target.value,
                               );
                             }
                           },
@@ -367,7 +367,7 @@ const PembayaranPage = () => {
                               .filter((f) =>
                                 f.name
                                   .toLowerCase()
-                                  .includes(inputValue.toLowerCase())
+                                  .includes(inputValue.toLowerCase()),
                               )
                               .map((f) => ({ label: f.name, value: f.id }));
                           },
@@ -388,7 +388,7 @@ const PembayaranPage = () => {
                               // Jika ChangeEvent
                               handleNewPembayaranChange(
                                 "status",
-                                e.target.value
+                                e.target.value,
                               );
                             }
                           },
@@ -402,7 +402,7 @@ const PembayaranPage = () => {
                               .filter((f) =>
                                 f.label
                                   .toLowerCase()
-                                  .includes(inputValue.toLowerCase())
+                                  .includes(inputValue.toLowerCase()),
                               )
                               .map((f) => ({ label: f.label, value: f.value }));
                           },
@@ -438,7 +438,6 @@ const PembayaranPage = () => {
         </div>
       </div>
     </section>
-
   );
 };
 

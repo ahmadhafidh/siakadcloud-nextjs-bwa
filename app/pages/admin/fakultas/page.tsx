@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useCallback } from "react";
 import api from "@/app/lib/axiosInstance";
 import {
   ColumnDef,
@@ -44,7 +44,7 @@ const addFakultas = async (data: { name: string; code: string }) => {
 };
 const updateFakultas = async (
   id: string,
-  data: { name?: string; code?: string }
+  data: { name?: string; code?: string },
 ) => {
   const res = await api.put(`/faculties/${id}`, data);
   return res.data;
@@ -59,7 +59,7 @@ const FakultasPage = () => {
   const [loading, setLoading] = useState(true);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedFakultas, setSelectedFakultas] = useState<Fakultas | null>(
-    null
+    null,
   );
 
   // State input tambah/edit
@@ -97,7 +97,7 @@ const FakultasPage = () => {
           HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
         >
       | SelectOption
-      | null
+      | null,
   ) => {
     if (e && "target" in e) {
       handleNamaChange(e as React.ChangeEvent<HTMLInputElement>);
@@ -122,7 +122,7 @@ const FakultasPage = () => {
     setLoading(true);
     const data = await getFakultas();
     const sortedData = data.sort((a: Fakultas, b: Fakultas) =>
-      a.name.localeCompare(b.name, "id", { sensitivity: "base" })
+      a.name.localeCompare(b.name, "id", { sensitivity: "base" }),
     );
     setFakultasList(sortedData);
     setLoading(false);
@@ -138,10 +138,10 @@ const FakultasPage = () => {
   };
 
   // Edit
-  const openEditModal = (fakultas: Fakultas) => {
+  const openEditModal = useCallback((fakultas: Fakultas) => {
     setSelectedFakultas(fakultas);
     setIsEditModalOpen(true);
-  };
+  }, []);
   const closeEditModal = () => {
     setIsEditModalOpen(false);
     setSelectedFakultas(null);
@@ -159,7 +159,7 @@ const FakultasPage = () => {
   };
 
   // Hapus fakultas
-  const handleDelete = async (id: string) => {
+  const handleDelete = useCallback(async (id: string) => {
     if (!confirm("Yakin hapus fakultas ini?")) return;
     try {
       await deleteFakultas(id);
@@ -186,7 +186,7 @@ const FakultasPage = () => {
       }
     }
     fetchFakultas();
-  };
+  }, []);
 
   // Columns untuk tabel
   const columns = useMemo<ColumnDef<Fakultas>[]>(
@@ -239,7 +239,7 @@ const FakultasPage = () => {
         },
       },
     ],
-    []
+    [handleDelete, openEditModal],
   );
 
   // Inisialisasi react-table

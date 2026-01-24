@@ -38,7 +38,7 @@ const addGolUkt = async (data: { group: string; amount: number }) => {
 };
 const updateGolUkt = async (
   id: string,
-  data: { group?: string; amount?: number }
+  data: { group?: string; amount?: number },
 ) => {
   const res = await api.put(`/tf-groups/${id}`, data);
   return res.data;
@@ -89,7 +89,7 @@ const GolUKTPage = () => {
         a.group.localeCompare(b.group, "id", {
           numeric: true,
           sensitivity: "base",
-        })
+        }),
       );
       setGolUktList(sortedData);
     } catch (err) {
@@ -115,7 +115,7 @@ const GolUKTPage = () => {
           HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
         >
       | SelectOption
-      | null
+      | null,
   ) => {
     if (!e) return;
 
@@ -171,7 +171,7 @@ const GolUKTPage = () => {
       });
 
       setGolUktList((prev) =>
-        prev.map((p) => (p.id === updated.id ? updated : p))
+        prev.map((p) => (p.id === updated.id ? updated : p)),
       );
       closeEditModal();
       fetchGolUkt();
@@ -202,7 +202,7 @@ const GolUKTPage = () => {
         alert("Gagal hapus: " + err.message);
         console.error("Gagal hapus:", err);
       } else {
-        alert("Gagal hapus golongan ukt: " + err.message);
+        alert("Gagal hapus golongan ukt: " + err);
         // fallback unknown error
         console.error("Unknown error:", err);
         alert("Gagal hapus: Terjadi kesalahan yang tidak diketahui");
@@ -268,7 +268,7 @@ const GolUKTPage = () => {
         },
       },
     ],
-    []
+    [],
   );
 
   // Inisialisasi react-table

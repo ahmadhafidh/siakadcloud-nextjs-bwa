@@ -101,7 +101,7 @@ const updateJadwal = async (
     day: string;
     classId: string;
     courseId: string;
-  }
+  },
 ) => {
   const res = await api.put(`/schedules/${id}`, data);
   return res.data;
@@ -156,7 +156,7 @@ const JadwalPage = () => {
     try {
       const data = await getMatkul();
       const sortedData = data.sort((a: Matkul, b: Matkul) =>
-        a.name.localeCompare(b.name, "id", { sensitivity: "base" })
+        a.name.localeCompare(b.name, "id", { sensitivity: "base" }),
       );
 
       setMatkulList(sortedData);
@@ -169,7 +169,7 @@ const JadwalPage = () => {
     try {
       const data = await getKelas();
       const sortedData = data.sort((a: Kelas, b: Kelas) =>
-        a.name.localeCompare(b.name, "id", { sensitivity: "base" })
+        a.name.localeCompare(b.name, "id", { sensitivity: "base" }),
       );
 
       setKelasList(sortedData);
@@ -182,7 +182,7 @@ const JadwalPage = () => {
     try {
       const data = await getJadwal();
       const sortedData = data.sort((a: Jadwal, b: Jadwal) =>
-        a.timeStart.localeCompare(b.timeStart, "id", { sensitivity: "base" })
+        a.timeStart.localeCompare(b.timeStart, "id", { sensitivity: "base" }),
       );
       setJadwalList(sortedData);
     } catch (err) {
@@ -304,7 +304,7 @@ const JadwalPage = () => {
       });
 
       setJadwalList((prev) =>
-        prev.map((p) => (p.id === updated.id ? updated : p))
+        prev.map((p) => (p.id === updated.id ? updated : p)),
       );
       closeEditModal();
       fetchJadwal();
@@ -335,7 +335,7 @@ const JadwalPage = () => {
         alert("Gagal hapus: " + err.message);
         console.error("Gagal hapus:", err);
       } else {
-        alert("Gagal hapus jadwal: " + err.message);
+        alert("Gagal hapus jadwal: " + err);
         // fallback unknown error
         console.error("Unknown error:", err);
         alert("Gagal hapus: Terjadi kesalahan yang tidak diketahui");
@@ -434,7 +434,7 @@ const JadwalPage = () => {
         },
       },
     ],
-    []
+    [],
   );
 
   // Inisialisasi react-table
@@ -515,7 +515,7 @@ const JadwalPage = () => {
                                 .filter((f) =>
                                   f.name
                                     .toLowerCase()
-                                    .includes(inputValue.toLowerCase())
+                                    .includes(inputValue.toLowerCase()),
                                 )
                                 .map((f) => ({ label: f.name, value: f.id }));
                             },
@@ -547,7 +547,7 @@ const JadwalPage = () => {
                                 .filter((f) =>
                                   f.name
                                     .toLowerCase()
-                                    .includes(inputValue.toLowerCase())
+                                    .includes(inputValue.toLowerCase()),
                                 )
                                 .map((f) => ({ label: f.name, value: f.id }));
                             },
@@ -658,7 +658,7 @@ const JadwalPage = () => {
               // bisa filter dari fakultasList lokal
               return kelasList
                 .filter((f) =>
-                  f.name.toLowerCase().includes(inputValue.toLowerCase())
+                  f.name.toLowerCase().includes(inputValue.toLowerCase()),
                 )
                 .map((f) => ({ label: f.name, value: f.id }));
             },
@@ -679,7 +679,7 @@ const JadwalPage = () => {
               // bisa filter dari fakultasList lokal
               return matkulList
                 .filter((f) =>
-                  f.name.toLowerCase().includes(inputValue.toLowerCase())
+                  f.name.toLowerCase().includes(inputValue.toLowerCase()),
                 )
                 .map((f) => ({ label: f.name, value: f.id }));
             },

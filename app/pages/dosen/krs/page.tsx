@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import api from "@/app/lib/axiosInstance";
 import {
   ColumnDef,
@@ -68,7 +68,7 @@ const updateStatus = async (
   id: string,
   data: {
     status: string;
-  }
+  },
 ) => {
   const res = await api.put(`/manage-lectures/study-plans/${id}`, data);
   return res.data;
@@ -126,7 +126,7 @@ const KRSPage = () => {
       }));
 
       const sortedData = mappedData.sort((a, b) =>
-        a.name.localeCompare(b.name, "id", { sensitivity: "base" })
+        a.name.localeCompare(b.name, "id", { sensitivity: "base" }),
       );
 
       setKrsList(sortedData);
@@ -135,7 +135,7 @@ const KRSPage = () => {
     }
   };
 
-  const handleToggleStatus = async (krs: Krs) => {
+  const handleToggleStatus = useCallback(async (krs: Krs) => {
     try {
       const newStatus = krs.status === "APPROVED" ? "REJECTED" : "APPROVED";
 
@@ -144,13 +144,13 @@ const KRSPage = () => {
       });
 
       setKrsList((prev) =>
-        prev.map((p) => (p.id === updated.id ? updated : p))
+        prev.map((p) => (p.id === updated.id ? updated : p)),
       );
       fetchKrs();
     } catch (err) {
       console.error("Gagal toggle status pembayaran:", err);
     }
-  };
+  }, []);
 
   const openDetailModal = (krs: Krs) => {
     setSelectedKrs(krs);
@@ -191,7 +191,9 @@ const KRSPage = () => {
 
           // tampilkan badge
           return (
-            <span style={{ width: "100px" }} className={`badge ${badgeClass}`}>{effectiveStatus}</span>
+            <span style={{ width: "100px" }} className={`badge ${badgeClass}`}>
+              {effectiveStatus}
+            </span>
           );
         },
       },
@@ -249,7 +251,7 @@ const KRSPage = () => {
         },
       },
     ],
-    []
+    [handleToggleStatus],
   );
 
   // Inisialisasi react-table

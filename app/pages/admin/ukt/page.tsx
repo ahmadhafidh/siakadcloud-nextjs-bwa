@@ -1,7 +1,6 @@
 "use client";
-import React from "react";
 import api from "@/app/lib/axiosInstance";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import {
   ColumnDef,
   getCoreRowModel,
@@ -84,7 +83,7 @@ const addUkt = async (data: { studentId: string; status: string }) => {
 };
 const updateUkt = async (
   id: string,
-  data: { studentId?: string; status?: string }
+  data: { studentId?: string; status?: string },
 ) => {
   const res = await api.put(`/tuition-fees/${id}`, data);
   return res.data;
@@ -136,7 +135,7 @@ const UKTPage = () => {
     try {
       const data = await getMahasiswa();
       const sortedData = data.sort((a: Mahasiswa, b: Mahasiswa) =>
-        a.name.localeCompare(b.name, "id", { sensitivity: "base" })
+        a.name.localeCompare(b.name, "id", { sensitivity: "base" }),
       );
       setMahasiswaList(sortedData);
     } catch (err) {
@@ -159,7 +158,7 @@ const UKTPage = () => {
       const sortedData = data.sort((a: Ukt, b: Ukt) =>
         a.student.name.localeCompare(b.student.name, "id", {
           sensitivity: "base",
-        })
+        }),
       );
       setUktList(sortedData);
     } catch (err) {
@@ -167,11 +166,17 @@ const UKTPage = () => {
     }
   };
 
-  const getProdiAndFakultas = (majorId: string) => {
-    const prodis = prodi.find((m) => m.id === majorId);
-    if (!prodis) return { majorName: "-", facultyName: "-" };
-    return { majorName: prodis.name, facultyName: prodis.faculty?.name || "-" };
-  };
+  const getProdiAndFakultas = useCallback(
+    (majorId: string) => {
+      const prodis = prodi.find((m) => m.id === majorId);
+      if (!prodis) return { majorName: "-", facultyName: "-" };
+      return {
+        majorName: prodis.name,
+        facultyName: prodis.faculty?.name || "-",
+      };
+    },
+    [prodi],
+  );
 
   const openEditModal = (ukt: Ukt) => {
     setSelectedUkt(ukt);
@@ -210,7 +215,7 @@ const UKTPage = () => {
       });
 
       setUktList((prev) =>
-        prev.map((p) => (p.id === updated.id ? updated : p))
+        prev.map((p) => (p.id === updated.id ? updated : p)),
       );
       console.log("Data yang akan dikirim:", newUkt);
       closeEditModal();
@@ -227,7 +232,7 @@ const UKTPage = () => {
       await deleteProdi(id);
       setUktList((prev) => prev.filter((p) => p.id !== id));
       alert("Ukt berhasil dihapus!");
-        } catch (err: unknown) {
+    } catch (err: unknown) {
       if (err instanceof AxiosError) {
         if (
           err.response?.data?.data?.error?.includes("Foreign key constraint")
@@ -318,7 +323,7 @@ const UKTPage = () => {
         },
       },
     ],
-    [prodi]
+    [getProdiAndFakultas],
   );
 
   // Inisialisasi react-table
@@ -398,7 +403,7 @@ const UKTPage = () => {
                               return MahasiswaList.filter((f) =>
                                 f.name
                                   .toLowerCase()
-                                  .includes(inputValue.toLowerCase())
+                                  .includes(inputValue.toLowerCase()),
                               ).map((f) => ({ label: f.name, value: f.id }));
                             },
                           },
@@ -472,7 +477,7 @@ const UKTPage = () => {
                 }));
               }
             },
-            disabled:true
+            disabled: true,
           },
           {
             label: "Status",

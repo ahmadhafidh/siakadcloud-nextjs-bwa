@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useCallback } from "react";
 import api from "@/app/lib/axiosInstance";
 import {
   ColumnDef,
@@ -76,7 +76,7 @@ const TahunAjaranPage = () => {
       const res = await api.post("/years", newTahun);
       // Update item sementara dengan id dari backend
       setData((prev) =>
-        prev.map((item) => (item.id === tempId ? res.data.data : item))
+        prev.map((item) => (item.id === tempId ? res.data.data : item)),
       );
       setNewTahun({
         name: "",
@@ -91,14 +91,14 @@ const TahunAjaranPage = () => {
     }
   };
 
-  const handleEdit = (item: TahunAjaran) => {
+  const handleEdit = useCallback((item: TahunAjaran) => {
     setSelectedEdit({
       ...item,
       dateStart: formatDateForInput(item.dateStart),
       dateEnd: formatDateForInput(item.dateEnd),
     });
     setShowEditModal(true);
-  };
+  }, []);
 
   const saveEdit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -107,7 +107,9 @@ const TahunAjaranPage = () => {
     try {
       const res = await api.put(`/years/${selectedEdit.id}`, selectedEdit);
       setData((prev) =>
-        prev.map((item) => (item.id === selectedEdit.id ? res.data.data : item))
+        prev.map((item) =>
+          item.id === selectedEdit.id ? res.data.data : item,
+        ),
       );
       setShowEditModal(false);
       setSelectedEdit(null);
@@ -239,7 +241,7 @@ const TahunAjaranPage = () => {
         },
       },
     ],
-    []
+    [handleEdit],
   );
 
   // Inisialisasi react-table
