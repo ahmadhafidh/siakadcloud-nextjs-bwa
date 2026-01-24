@@ -106,10 +106,10 @@ Link pembelian [Link](https://buildwithangga.com/kelas/full-stack-javascript-mer
 - Perbaiki Hydranation
 - Perbaiki type any
 - Hapus import yang tidak terpakai
-- Hapus package yang tidak terpakai
+- Hapus package yang tidak terpakai (belum)
 
 ---
-### Penerapan API - DOSEN
+### Penerapan API DOSEN
 ---
 #### Dosen Feature dan Penerapan Komponen
 - Tambah komponen kalender dan implementasi
@@ -117,17 +117,17 @@ Link pembelian [Link](https://buildwithangga.com/kelas/full-stack-javascript-mer
 - Tambah komponen absensi toggle
 - Tambah komponen MatkulCard
 - Integrasi API dan komponen pada Mata Kuliah
-- Tambah API untuk pilih kelas
+- Tambah API untuk pilih matkul dan pilih kelas
 - Fix search params
 - Fix ascending dan status
 - Tambah API ke Jadwal
 
 ---
-### Penerapan API - MHS
+### Penerapan API MHS dan FINALIZATION
 ---
 #### Mahasiswa Feature dan Penerapan Komponen
 - Tambah API ke KHS
-- Tambah API ke Payment
+- Tambah API ke Payment (gagal update pembayaran by midtrans)
 - Fix add KRS
 - Fix payment warning
 
@@ -135,13 +135,10 @@ Link pembelian [Link](https://buildwithangga.com/kelas/full-stack-javascript-mer
 - Tambah route
 - Perbaiki layout sidebar
 
----
-### FINALIZATION
----
 ### Dashboard
-- Tambah dashboard dosen dan komponen terkait
-- Tambah dashboard admin dan komponen terkait
-- Tambah dashboard mahasiswa dan komponen terkait
+- Tambah dashboard admin dan komponen terkait (done)
+- Tambah dashboard dosen dan komponen terkait (ketika di cek masih ada bugs)
+- Tambah dashboard mahasiswa dan komponen terkait (done)
 
 ### Perbaikan Detail
 - Hapus ikon yang tidak penting
@@ -152,7 +149,7 @@ Link pembelian [Link](https://buildwithangga.com/kelas/full-stack-javascript-mer
 ### Midtrans
 - Integrasi API Midtrans
 
+---
 ### Deployment
-- Beli Domain dan VPS
-- Deploy BE
-- Deploy FE
+---
+-  Deploy Backend Frontend
